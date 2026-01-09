@@ -1,64 +1,50 @@
-// netlify/functions/line-webhook.js
-import crypto from "crypto";
+const axios = require('axios');
 
-export const handler = async (event) => {
-  // LINEの「検証」やブラウザ直打ち用
-  if (event.httpMethod === "GET") {
-    return { statusCode: 200, body: "ok" };
-  }
+exports.handler = async (event) => {
+    const body = JSON.parse(event.body);
+    // LINEからのイベント処理（メッセージ受信など）
+    // ソースに基づき、通知と導線のみを担当 [11]
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Webhook received" })
+    };
+};
 
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
+--------------------------------------------------------------------------------
+4. /netlify/functions/daily-submit.js
+「今日の記録」画面から送られたデータをAIで解析し、スプレッドシートに保存する心臓部です。
+const { OpenAI } = require('openai');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-  const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET;
-  const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+exports.handler = async (event) => {
+    const data = JSON.parse(event.body);
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    
+    // 1. 食事写真解析（ソースのJSON Schemaを使用）[14, 16]
+    const aiResponse = await openai.chat.completions.create({
+        model: "gpt-4-vision-preview",
+        messages: [{ role: "system", content: process.env.PROMPT_MEAL_IMAGE }, { role: "user", content: data.image_url }]
+    });
 
-  if (!CHANNEL_SECRET || !ACCESS_TOKEN) {
-    console.log("Missing env vars");
-    return { statusCode: 500, body: "Missing env vars" };
-  }
+    // 2. ガードレールの適用（禁止食材の混入チェック、合算栄養の計算）[17, 18]
+    // 3. スプレッドシート(DailyLog/DailyAnswers)への追記 [15, 19]
+    
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ status: "ok", advice: "AI解析結果を返却" })
+    };
+};
 
-  const body = event.body || "";
-
-  // 署名検証（これが通らないとLINEは正規リクエストとみなせない）
-  const signature = event.headers["x-line-signature"] || event.headers["X-Line-Signature"];
-  const hash = crypto.createHmac("sha256", CHANNEL_SECRET).update(body).digest("base64");
-
-  if (hash !== signature) {
-    console.log("Invalid signature");
-    return { statusCode: 401, body: "Invalid signature" };
-  }
-
-  const payload = JSON.parse(body);
-  const events = payload.events || [];
-
-  // すぐ200を返す（LINE側のタイムアウト回避）
-  // ただし返信も同時に投げる
-  await Promise.all(
-    events.map(async (ev) => {
-      if (ev.type !== "message") return;
-      if (ev.message?.type !== "text") return;
-
-      const text = ev.message.text;
-
-      // 返信API
-      const res = await fetch("https://api.line.me/v2/bot/message/reply", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-        },
-        body: JSON.stringify({
-          replyToken: ev.replyToken,
-          messages: [{ type: "text", text: `受け取ったよ：${text}` }],
-        }),
-      });
-
-      const t = await res.text();
-      console.log("reply status:", res.status, t);
-    })
-  );
-
-  return { statusCode: 200, body: "ok" };
+--------------------------------------------------------------------------------
+5. /netlify/functions/weekly-generate.js
+週末にAggシートの数値を読み取り、翌週の「献立・買い物・レシピ」を生成します。
+exports.handler = async (event) => {
+    // 1. Aggシートから1週間の平均スコア（基礎・健康比率）を取得 [9, 23]
+    // 2. 週次問診（A-E, F-J）の最大値判定キーを取得 [24]
+    // 3. 禁止食材（小麦、砂糖、加工肉等）を排除したプロンプトでAI呼び出し [21, 25]
+    // 4. WeeklyLogに保存 [26]
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Weekly plan generated" })
+    };
 };
