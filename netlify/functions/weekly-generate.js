@@ -1,67 +1,51 @@
-const { google } = require("googleapis");
+const { OpenAI } = require("openai");
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-function getServiceAccount() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
+exports.handler = async (event) => {
+    const userId = event.queryStringParameters.user_id || "U12345";
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const json = JSON.parse(raw);
-  if (json.private_key) {
-    json.private_key = json.private_key.replace(/\\n/g, "\n");
-  }
-  return json;
-}
+    try {
+        // 1. スプレッドシートの初期化とデータ取得 [1, 2]
+        const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
+        await doc.useServiceAccountAuth({
+            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/gm, '\n'),
+        });
+        await doc.loadInfo();
 
-async function getSheetsClient() {
-  const sa = getServiceAccount();
+        const aggSheet = doc.sheetsByTitle['Agg'];
+        const rows = await aggSheet.getRows();
+        const userRow = rows.find(r => r.user_id === userId);
 
-  const auth = new google.auth.JWT({
-    email: sa.client_email,
-    key: sa.private_key,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+        // 2. AIへの依頼（プロンプトに禁止食材ルールを適用） [3, 4]
+        const aiResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                { role: "system", content: "あなたは食薬アドバイザーです。小麦・砂糖・揚げ物・乳製品・加工肉は一切使いません。回答は必ずJSON形式のみで行ってください。" },
+                { role: "user", content: `以下の状況に基づき、来週の【献立3つ】【買い物リスト】【簡単レシピ1つ】【総合アドバイス】を生成して。
+                状況：週次判定キー=${userRow.weekly_bucket}、今週の学び=${userRow.weekly_learning_text}` }
+            ],
+            response_format: { type: "json_object" }
+        });
 
-  await auth.authorize();
-  return google.sheets({ version: "v4", auth });
-}
+        const plan = JSON.parse(aiResponse.choices.message.content);
 
-exports.handler = async () => {
-  try {
-    const sheetId = process.env.GOOGLE_SHEET_ID;
-    if (!sheetId) throw new Error("Missing GOOGLE_SHEET_ID");
+        // 3. WeeklyLogシートへ結果を保存 [5, 6]
+        const weeklyLogSheet = doc.sheetsByTitle['WeeklyLog'];
+        await weeklyLogSheet.addRow({
+            user_id: userId,
+            week_no: userRow.current_week_no,
+            weekly_plan_json: JSON.stringify(plan),
+            created_at: new Date().toLocaleString("ja-JP")
+        });
 
-    const sheets = await getSheetsClient();
-
-    // DailyLog の A:C を読み取り（まずはテスト）
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: "DailyLog!A:C",
-    });
-
-    const values = res.data.values || [];
-    const header = values[0] || [];
-    const rows = values.slice(1);
-
-    // 最新5件を返す（空なら空でOK）
-    const last5 = rows.slice(-5);
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ok: true,
-        totalRows: rows.length,
-        header,
-        last5,
-      }),
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ok: false,
-        error: err.message || String(err),
-      }),
-    };
-  }
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(plan)
+        };
+    } catch (error) {
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+    }
 };
