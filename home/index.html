@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>食薬AIダッシュボード</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        button { width: 100%; padding: 15px; margin: 10px 0; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; background-color: #4CAF50; color: white; }
+        .study-box { font-size: 14px; color: #666; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>今日の状態</h1>
+        <p><strong>今日の食薬は、気負わず1つだけ整える日にしましょう</strong></p>
+        
+        <!-- 各ページへのボタン -->
+        <button onclick="location.href='/daily'">今日の記録をする</button>
+        <button onclick="location.href='/weekly'">今週のふり返りを見る</button>
+
+        <div class="study-box">
+            <h3>今週の学び</h3>
+            <p id="learning-text">（ここにMessageDBから自動で学び文が表示されます）</p>
+        </div>
+    </div>
+</body>
+</html>
