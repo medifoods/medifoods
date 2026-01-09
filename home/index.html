@@ -4,50 +4,40 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ホーム | 食薬AI</title>
     <style>
-        body { font-family: sans-serif; background-color: #fdfaf1; padding: 20px; color: #333; }
-        .container { max-width: 500px; margin: auto; }
-        .welcome-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
-        .week-badge { background: #4a6741; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin-bottom: 10px; }
-        h1 { font-size: 1.3rem; margin: 10px 0; color: #4a6741; }
-        .point-card { background: #f0f4ee; padding: 15px; border-radius: 12px; margin: 20px 0; text-align: left; font-size: 0.9rem; border-left: 5px solid #4a6741; }
-        .nav-buttons { display: grid; gap: 15px; margin-top: 30px; }
-        .btn { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; text-decoration: none; text-align: center; font-size: 1rem; }
-        .btn-main { background: #4a6741; color: white; box-shadow: 0 4px 10px rgba(74,103,65,0.3); }
-        .btn-sub { background: white; color: #4a6741; border: 2px solid #4a6741; }
+        :root { --main: #4a6741; --bg: #fdfaf1; }
+        body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: #333; line-height: 1.6; }
+        .card { background: white; border-radius: 35px; padding: 40px 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); text-align: center; max-width: 500px; margin: auto; }
+        h1 { color: var(--main); font-size: 2.2rem; margin-bottom: 10px; } /* 老眼対応：巨大フォント */
+        .badge { background: var(--main); color: white; padding: 8px 25px; border-radius: 50px; font-size: 1.2rem; display: inline-block; margin-bottom: 20px; }
+        .btn { display: block; padding: 25px; border-radius: 20px; margin: 20px 0; font-weight: bold; font-size: 1.5rem; text-decoration: none; transition: 0.3s; }
+        .btn-main { background: var(--main); color: white; box-shadow: 0 10px 25px rgba(74,103,65,0.2); }
+        .btn-sub { background: #f0f4ee; color: var(--main); }
+        .info-box { background: #f9fbf8; padding: 30px; border-radius: 25px; text-align: left; border-left: 10px solid var(--main); margin-top: 30px; }
+        .info-title { color: var(--main); font-weight: bold; font-size: 1.4rem; display: block; margin-bottom: 15px; }
+        .info-text { font-size: 1.3rem; color: #444; } /* 老眼対応：本文サイズUP */
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="welcome-box">
-            <div id="weekNo" class="week-badge">読み込み中...</div>
-            <h1 id="userName">こんにちは！</h1>
-            <p style="font-size:0.9rem; color:#666;">今日の心と体のご機嫌はいかがですか？</p>
-
-            <div class="point-card">
-                <strong style="color:#4a6741;">💡 今週の食薬Point</strong>
-                <p id="learningPoint" style="margin-top:8px; line-height:1.5;">データを取得しています...</p>
-            </div>
-
-            <div class="nav-buttons">
-                <a href="/daily" class="btn btn-main">🍴 今日の食事と舌を記録する</a>
-                <a href="/weekly" class="btn btn-sub">📊 今週の積み重ねを見る</a>
-            </div>
+    <div class="card">
+        <div id="weekNo" class="badge">読み込み中...</div>
+        <h1>こんにちは！</h1>
+        <p style="font-size: 1.3rem; color: #666;">今のあなたに必要な食薬を届けます</p>
+        
+        <a href="/daily" class="btn btn-main">🍴 今日の食事を記録</a>
+        <a href="/weekly" class="btn btn-sub">📊 今週のふり返り</a>
+        
+        <div class="info-box">
+            <span class="info-title">💡 今週の食薬Point</span>
+            <p id="learning" class="info-text">データを取得中...</p>
         </div>
     </div>
-
     <script>
-        const userId = "U12345"; // 実際にはユーザーごとに動的に取得
+        const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
         window.onload = async () => {
-            try {
-                // APIからユーザーの現在のステータス（週数・学び文）を取得
-                const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
-                const data = await res.json();
-                
-                document.getElementById('weekNo').innerText = `第 ${data.week_no} 週目`;
-                document.getElementById('learningPoint').innerText = data.weekly_learning_text || "今日のあなたにぴったりの食薬を続けましょう。";
-            } catch (err) {
-                console.error("データ取得失敗", err);
-            }
+            const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
+            const data = await res.json();
+            document.getElementById('weekNo').innerText = `第 ${data.week_no} 週目`;
+            document.getElementById('learning').innerText = data.weekly_learning_text;
         };
     </script>
 </body>
