@@ -1,89 +1,92 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>今週のふり返り | 食薬AI</title>
-    <!-- グラフライブラリ Chart.js の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.2rem; text-align: center; color: #4a6741; }
-        .chart-area { margin: 20px 0; height: 300px; }
-        .note { font-size: 0.8rem; color: #666; text-align: center; margin-top: 10px; }
+        body { font-family: sans-serif; background-color: #fdfaf1; padding: 15px; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { font-size: 1.2rem; text-align: center; color: #4a6741; margin-bottom: 20px; }
+        .chart-area { margin-bottom: 30px; height: 250px; }
+        .btn-generate { background: #4a6741; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .advice-box { display: none; margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .card { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 0.9rem; }
+        .card strong { color: #4a6741; display: block; margin-bottom: 5px; border-bottom: 1px solid #ddd; }
+        .loading { text-align: center; color: #888; font-size: 0.8rem; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>今週の積み重ね</h1>
         
-        <!-- グラフを表示する場所 -->
-        <div class="chart-area">
-            <canvas id="weeklyChart"></canvas>
-        </div>
+        <!-- 1. 累積グラフエリア -->
+        <div class="chart-area"><canvas id="weeklyChart"></canvas></div>
 
-        <div id="statusMessage" class="note">データを読み込み中...</div>
-        
-        <p class="note">数値は目安です。大切なのは自分の体の声に耳を傾けることです [1, 2]。</p>
+        <!-- 2. アドバイス生成ボタン -->
+        <button class="btn-generate" id="genBtn" onclick="generateWeeklyPlan()">来週の食薬処方箋を受け取る</button>
+        <div id="loader" class="loading" style="display:none;">AIが来週の献立とレシピを考案中...<br>(30秒ほどかかります)</div>
+
+        <!-- 3. AIアドバイス表示エリア -->
+        <div id="aiAdviceArea" class="advice-box">
+            <div class="card"><strong>📋 来週のおすすめ献立</strong><ul id="menuList"></ul></div>
+            <div class="card"><strong>🛒 お買い物リスト</strong><p id="shoppingList"></p></div>
+            <div class="card"><strong>🍳 簡単レシピ：<span id="recipeName"></span></strong>
+                <p id="recipeIngredients" style="font-size:0.8rem; color:#666;"></p>
+                <p id="recipeSteps"></p>
+            </div>
+            <div class="card"><strong>💡 食薬アドバイス</strong><p id="totalAdvice"></p></div>
+        </div>
     </div>
 
     <script>
-        async function initWeeklyPage() {
+        const userId = "U12345"; // 運用に合わせて動的に取得するよう変更可能
+
+        // ページ読み込み時にグラフを描画
+        window.onload = async () => {
+            const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
+            const data = await res.json();
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['これまでの平均', '今週のあなた'],
+                    datasets: [
+                        { label: '積み重ね', data: [data.base_avg_all, data.base_avg_all], borderColor: '#ccc', borderDash: [1], fill: false },
+                        { label: '今週', data: [null, data.base_avg_7d], borderColor: '#ff6384', backgroundColor: '#ff6384', pointRadius: 8, fill: false }
+                    ]
+                },
+                options: { scales: { y: { min: 0, max: 100 } } }
+            });
+        };
+
+        // AIプラン生成APIの呼び出し [2]
+        async function generateWeeklyPlan() {
+            document.getElementById('genBtn').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+
             try {
-                // 1. APIから集計データを取得（user_idは運用に合わせて変更）
-                const response = await fetch('/.netlify/functions/get-summary?user_id=U12345');
-                const data = await response.json();
+                const res = await fetch(`/.netlify/functions/weekly-generate?user_id=${userId}`);
+                const plan = await res.json();
 
-                if (!data.base_avg_all) {
-                    document.getElementById('statusMessage').innerText = "データが貯まるとグラフが表示されます";
-                    return;
-                }
+                // 画面への反映
+                document.getElementById('aiAdviceArea').style.display = 'block';
+                document.getElementById('loader').style.display = 'none';
+                
+                // 献立リスト
+                const menuList = document.getElementById('menuList');
+                plan.食薬献立.forEach(m => { const li = document.createElement('li'); li.innerText = m; menuList.appendChild(li); });
+                
+                document.getElementById('shoppingList').innerText = plan.買い物リスト.join('、');
+                document.getElementById('recipeName').innerText = plan.簡単食薬レシピ.料理名;
+                document.getElementById('recipeIngredients').innerText = "材料：" + plan.簡単食薬レシピ.材料.join(', ');
+                document.getElementById('recipeSteps').innerText = plan.簡単食薬レシピ.作り方.join(' → ');
+                document.getElementById('totalAdvice').innerText = plan.食薬アドバイス;
 
-                // 2. グラフの描画
-                const ctx = document.getElementById('weeklyChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['先週以前のベース', '今週のあなた'],
-                        datasets: [
-                            {
-                                label: 'これまでの積み重ね',
-                                data: [data.base_avg_all, data.base_avg_all],
-                                borderColor: 'rgba(75, 192, 192, 0.4)',
-                                borderDash: [3], // 累積は穏やかな点線で表現 [4]
-                                fill: false,
-                                pointRadius: 0
-                            },
-                            {
-                                label: '直近の傾向',
-                                data: [null, data.base_avg_7d], // 今週の地点だけ表示
-                                borderColor: '#ff6384',
-                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                fill: true,
-                                pointRadius: 8,
-                                pointHoverRadius: 10
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { min: 0, max: 100, title: { display: true, text: '食薬スコア' } }
-                        },
-                        plugins: {
-                            legend: { position: 'bottom' }
-                        }
-                    }
-                });
-                document.getElementById('statusMessage').innerText = "順調に積み上がっています！";
             } catch (err) {
-                console.error(err);
-                document.getElementById('statusMessage').innerText = "データの取得に失敗しました";
+                alert("生成に失敗しました。もう一度お試しください。");
             }
         }
-        window.onload = initWeeklyPage;
     </script>
 </body>
 </html>
