@@ -2,31 +2,39 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>今日の記録 | 食薬AI</title>
+    <title>記録 | 食薬AI</title>
     <style>
         :root { --main: #4a6741; --bg: #fdfaf1; }
-        body { font-family: sans-serif; background: var(--bg); padding: 20px; font-size: 1.2rem; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 35px; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .char-box { text-align: center; background: #f9fbf8; padding: 20px; border-radius: 25px; margin-bottom: 25px; }
-        .char-img { font-size: 80px; } /* 人間キャラクター 🧑‍🍳 */
-        h1 { color: var(--main); text-align: center; font-size: 1.8rem; margin: 0 0 20px; }
-        label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 10px; font-size: 1.4rem; }
-        select, input[type="file"] { width: 100%; padding: 20px; border-radius: 15px; border: 2px solid #eee; font-size: 1.3rem; margin-bottom: 20px; box-sizing: border-box; }
-        .q-card { border-bottom: 1px solid #f0f0f0; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; }
-        .q-text { flex: 1; font-size: 1.2rem; }
-        .q-check { width: 40px; height: 40px; transform: scale(2.0); accent-color: var(--main); }
-        .btn-submit { background: var(--main); color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 40px; }
+        body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 20px; font-size: 1.2rem; }
+        .container { max-width: 550px; margin: auto; background: white; padding: 35px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        .char-box { text-align: center; background: #f9fbf8; padding: 25px; border-radius: 30px; margin-bottom: 30px; border: 2px solid #eef2ed; }
+        .char-img { font-size: 100px; display: block; }
+        .char-msg { font-size: 1.4rem; font-weight: bold; color: var(--main); margin-top: 10px; }
+        /* 老眼対応：巨大ボタンと文字 */
+        label { font-weight: bold; color: var(--main); display: block; margin: 30px 0 10px; font-size: 1.5rem; }
+        select, input[type="file"] { width: 100%; padding: 22px; border-radius: 15px; border: 2px solid #eee; font-size: 1.3rem; margin-bottom: 20px; box-sizing: border-box; }
+        .q-card { border-bottom: 1px solid #f0f0f0; padding: 22px 0; display: flex; align-items: center; justify-content: space-between; }
+        .q-text { flex: 1; font-size: 1.3rem; }
+        .q-check { width: 45px; height: 45px; transform: scale(1.8); accent-color: var(--main); }
+        .btn-submit { background: var(--main); color: white; width: 100%; padding: 28px; border-radius: 25px; border: none; font-weight: bold; font-size: 1.8rem; cursor: pointer; margin-top: 40px; }
+        /* ローディング */
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
     </style>
 </head>
 <body>
+    <div id="loading" class="loading-overlay">
+        <div style="font-size: 80px;">🦁</div>
+        <p style="font-weight: bold; color: #4a6741; font-size: 1.6rem; margin: 20px;">AIがあなたの食事を<br>じっくり診察中です...</p>
+    </div>
+
     <div class="container">
         <div class="char-box">
-            <span class="char-img">🧑‍🍳</span>
-            <p style="font-weight:bold; color:#4a6741;">こんにちは！<br>今日のあなたの食事を教えてね。</p>
+            <span id="displayChar" class="char-img">🦁</span>
+            <p id="displayMsg" class="char-msg">こんにちは！<br>今日の食事を記録してね</p>
         </div>
-        <h1>🍴 今日の食薬記録</h1>
+
         <form id="dailyForm">
-            <label>食事の目的</label>
+            <label>🍽️ 食事の目的</label>
             <select name="meal_purpose" required>
                 <option value="health">体を整える（健康）</option>
                 <option value="enjoy">時間を楽しむ（喜び）</option>
@@ -37,40 +45,46 @@
             <input type="file" name="photos" accept="image/*" multiple required>
 
             <label>✍️ 今日の習慣チェック</label>
-            <div id="questions">
-                <!-- Q1-Q14 全問診 [3] -->
-                <script>
-                    const qs = [
-                        "Q1. タネ・ナッツ（5g）食べた？", "Q2. 野菜（両手分）食べた？", "Q3. 旬の野菜を食べた？",
-                        "Q4. 海藻類を食べた？", "Q5. キノコ類を食べた？", "Q6. たんぱく質（手のひら大）食べた？",
-                        "Q7. 魚を食べた？", "Q8. 味噌汁を飲んだ？", "Q9. 空腹を感じてから食べた？",
-                        "Q10. 30回以上よく噛んで食べた？", "Q11. 小麦製品を食べた？", "Q12. 甘いもの・飲み物をとった？",
-                        "Q13. 揚げ物を食べた？", "Q14. お酒・カフェイン（3杯以上）？"
-                    ];
-                    qs.forEach((q, i) => {
-                        document.write(`<div class="q-card"><span class="q-text">${q}</span><input type="checkbox" name="Q${i+1}" class="q-check"></div>`);
-                    });
-                </script>
-            </div>
-            <button type="submit" class="btn-submit">記録して診断をみる</button>
+            <div id="questions"></div>
+            <button type="submit" class="btn-submit">記録を送信して診断へ</button>
         </form>
     </div>
 
     <script>
+        const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
+        const charList = ["🦁","🐰","🐻","🐼","🐶","🐱","🐨","🐢","🐥","👻"];
+
+        // Q1-Q14 全生成
+        const qs = ["タネ・ナッツ","野菜(両手分)","旬の野菜","海藻類","キノコ類","たんぱく質","魚","味噌汁","空腹感","よく噛んだ","小麦製品(減点)","甘いもの(減点)","揚げ物(減点)","お酒(減点)"];
+        qs.forEach((q, i) => {
+            document.getElementById('questions').innerHTML += `<div class="q-card"><span class="q-text">Q${i+1}. ${q}食べた？</span><input type="checkbox" name="Q${i+1}" class="q-check"></div>`;
+        });
+
+        // 現在のキャラを表示
+        window.onload = async () => {
+            try {
+                const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
+                const data = await res.json();
+                const level = data.char_status_logic || 1;
+                document.getElementById('displayChar').innerText = charList[level-1];
+            } catch(e) { console.error("Load error"); }
+        };
+
+        // 送信処理
         document.getElementById('dailyForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
-            btn.innerText = "診断中..."; btn.disabled = true;
-
+            document.getElementById('loading').style.display = 'flex';
             const formData = new FormData(e.target);
+            formData.append('user_id', userId);
+
             try {
                 const res = await fetch('/.netlify/functions/daily-submit', { method: 'POST', body: formData });
                 const data = await res.json();
-                // 送信成功後、診断結果ページへ移動する [2]
-                window.location.href = `/result?log_id=${data.log_id}`;
+                // 成功：診断結果ページへ移動（ループを回避） [1]
+                window.location.href = `/result?log_id=${data.log_id}&user_id=${userId}`;
             } catch (err) {
-                alert("送信に失敗しました。電波の良い場所で再度お試しください。");
-                btn.innerText = "記録して診断をみる"; btn.disabled = false;
+                document.getElementById('loading').style.display = 'none';
+                alert("通信が込み合っています。もう一度お試しください。");
             }
         };
     </script>
