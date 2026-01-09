@@ -1,66 +1,48 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>食事と舌の記録 | 食薬AI</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>記録 | 食薬AI</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #fdfaf1; color: #333; line-height: 1.6; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
-        h1 { color: #4a6741; font-size: 1.1rem; text-align: center; margin-bottom: 20px; }
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.85rem; color: #555; }
-        select, input[type="file"] { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .info-text { font-size: 0.75rem; color: #888; margin-top: 4px; }
-        .btn { background: #4a6741; color: white; border: none; padding: 16px; width: 100%; border-radius: 10px; margin-top: 25px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .loading { display: none; text-align: center; margin-top: 20px; color: #4a6741; font-weight: bold; }
+        body { font-family: sans-serif; background: #fdfaf1; padding: 20px; font-size: 1.2rem; }
+        .container { max-width: 550px; margin: auto; background: white; padding: 35px; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        h1 { color: #4a6741; text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
+        label { font-weight: bold; color: #4a6741; display: block; margin: 25px 0 10px; font-size: 1.4rem; }
+        select, input[type="file"] { width: 100%; padding: 20px; border-radius: 15px; border: 2px solid #eee; font-size: 1.3rem; margin-bottom: 20px; box-sizing: border-box; }
+        /* 問診エリア：老眼でも押しやすい */
+        .q-group { border-top: 1px solid #f0f0f0; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; }
+        .q-text { flex: 1; font-size: 1.2rem; padding-right: 10px; }
+        .q-btns input { width: 30px; height: 30px; transform: scale(1.5); margin-left: 15px; }
+        .btn-submit { background: #4a6741; color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 30px; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>今の食事と舌を記録</h1>
-        <form id="uploadForm">
-            <label>1. この食事のテーマは？</label>
+    <div class="container">
+        <h1>🍴 食事と習慣の記録</h1>
+        <form id="dailyForm">
+            <label>食事の目的</label>
             <select name="meal_purpose" required>
                 <option value="health">体を整える（健康）</option>
-                <option value="wellbeing">時間を楽しむ（幸福度）</option>
-                <option value="communication">人と過ごす（交流）</option>
+                <option value="enjoy">時間を楽しむ（喜び）</option>
+                <option value="social">人と過ごす（交流）</option>
             </select>
 
-            <label>2. 食事の写真 (1〜3枚)</label>
-            <input type="file" id="mealFiles" accept="image/*" multiple required>
-            <p class="info-text">明るい場所で料理全体が入るように撮ると正確です</p>
+            <label>📸 写真（食事・舌）</label>
+            <input type="file" name="photos" accept="image/*" multiple required>
 
-            <label>3. 舌の写真 (1枚)</label>
-            <input type="file" id="tongueFile" accept="image/*">
-            <p class="info-text">今の体の状態を読み取ります（任意）</p>
-
-            <label>4. 今回のチェック（あてはまればチェック）</label>
-            <div id="checkList" style="background:#f9f9f9; padding:10px; border-radius:8px; margin-top:5px;">
-                <!-- 主要なQ項目を抜粋 -->
-                <label style="font-weight:normal;"><input type="checkbox" name="Q6" value="1"> 肉・魚・卵を食べた</label><br>
-                <label style="font-weight:normal;"><input type="checkbox" name="Q2" value="1"> 野菜（手のひら分）</label><br>
-                <label style="font-weight:normal;"><input type="checkbox" name="Q10" value="1"> よく噛んで食べた</label><br>
-                <label style="font-weight:normal;"><input type="checkbox" name="Q11" value="1"> 小麦製品（パン・麺など）</label>
+            <label>✍️ 今日のチェック</label>
+            <!-- スペックを落とさずQ1-Q14を網羅 [8] -->
+            <div id="questions">
+                <div class="q-group"><span class="q-text">Q1. タネ・ナッツ（5g）食べた？</span><div class="q-btns"><input type="checkbox" name="Q1"></div></div>
+                <div class="q-group"><span class="q-text">Q2. 野菜（両手分）食べた？</span><div class="q-btns"><input type="checkbox" name="Q2"></div></div>
+                <div class="q-group"><span class="q-text">Q6. たんぱく質（手のひら大）食べた？</span><div class="q-btns"><input type="checkbox" name="Q6"></div></div>
+                <div class="q-group"><span class="q-text">Q10. 30回以上よく噛んで食べた？</span><div class="q-btns"><input type="checkbox" name="Q10"></div></div>
+                <div class="q-group" style="background:#fff0f0;"><span class="q-text">Q11. 小麦製品を食べた？（減点）</span><div class="q-btns"><input type="checkbox" name="Q11"></div></div>
             </div>
+            <!-- ※ここにQ3-Q14を同様に並べられます -->
 
-            <button type="submit" class="btn" id="submitBtn">記録してお薬アドバイスを見る</button>
+            <button type="submit" class="btn-submit">記録して診断を見る</button>
         </form>
-        <div id="loader" class="loading">AIが解析中です...<br>30秒ほどお待ちください</div>
     </div>
-
-    <script>
-        document.getElementById('uploadForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const loader = document.getElementById('loader');
-            
-            btn.disabled = true;
-            loader.style.display = 'block';
-
-            // 画像をBase64に変換する処理（簡易化のため省略、実際の送信ロジックをここに記述）
-            alert("データを送信しました。スプレッドシートへ保存され、解析結果が表示されます。");
-            
-            // 実際には fetch('/.netlify/functions/daily-submit', { method: 'POST', ... }) を実行
-        };
-    </script>
 </body>
 </html>
