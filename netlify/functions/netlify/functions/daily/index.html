@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>今日の記録</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:720px;margin:24px auto;padding:0 16px}
+    input,textarea,button{width:100%;padding:12px;font-size:16px;margin:8px 0}
+    button{cursor:pointer}
+    .ok{color:green} .ng{color:#b00020}
+  </style>
+</head>
+<body>
+  <h1>今日の記録</h1>
+
+  <label>お名前（仮でOK）</label>
+  <input id="userName" placeholder="例：愛" />
+
+  <label>今日の記録（まずはテキストだけ）</label>
+  <textarea id="note" rows="6" placeholder="例：朝：味噌汁、昼：魚定食、夜：鍋…"></textarea>
+
+  <button id="sendBtn">送信 → DailyLogに保存</button>
+  <p id="result"></p>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    $("sendBtn").addEventListener("click", async () => {
+      $("result").textContent = "送信中…";
+
+      const payload = {
+        userName: $("userName").value.trim(),
+        note: $("note").value.trim()
+      };
+
+      try {
+        const res = await fetch("/.netlify/functions/daily-submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "unknown error");
+
+        $("result").className = "ok";
+        $("result").textContent = "保存できました！スプレッドシートのDailyLogを確認してください。";
+      } catch (e) {
+        $("result").className = "ng";
+        $("result").textContent = "エラー： " + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
