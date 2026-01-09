@@ -1,6 +1,23 @@
 [build]
-  publish = "."
+  publish = "/"
   functions = "netlify/functions"
 
-[build.environment]
-  NODE_VERSION = "18"
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+--------------------------------------------------------------------------------
+2. /package.json
+必要なライブラリ（OpenAI、Googleスプレッドシート操作、LINE通信用）を定義します。
+{
+  "name": "syokuyaku-ai-system",
+  "version": "1.0.0",
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "axios": "^1.6.0",
+    "google-spreadsheet": "^4.1.1",
+    "openai": "^4.20.0",
+    "dotenv": "^16.0.0"
+  }
+}
