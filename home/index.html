@@ -1,28 +1,54 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>食薬AIダッシュボード</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホーム | 食薬AI</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        button { width: 100%; padding: 15px; margin: 10px 0; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; background-color: #4CAF50; color: white; }
-        .study-box { font-size: 14px; color: #666; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px; }
+        body { font-family: sans-serif; background-color: #fdfaf1; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: auto; }
+        .welcome-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .week-badge { background: #4a6741; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; display: inline-block; margin-bottom: 10px; }
+        h1 { font-size: 1.3rem; margin: 10px 0; color: #4a6741; }
+        .point-card { background: #f0f4ee; padding: 15px; border-radius: 12px; margin: 20px 0; text-align: left; font-size: 0.9rem; border-left: 5px solid #4a6741; }
+        .nav-buttons { display: grid; gap: 15px; margin-top: 30px; }
+        .btn { padding: 18px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; text-decoration: none; text-align: center; font-size: 1rem; }
+        .btn-main { background: #4a6741; color: white; box-shadow: 0 4px 10px rgba(74,103,65,0.3); }
+        .btn-sub { background: white; color: #4a6741; border: 2px solid #4a6741; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>今日の状態</h1>
-        <p><strong>今日の食薬は、気負わず1つだけ整える日にしましょう</strong></p>
-        
-        <!-- 各ページへのボタン -->
-        <button onclick="location.href='/daily'">今日の記録をする</button>
-        <button onclick="location.href='/weekly'">今週のふり返りを見る</button>
+    <div class="container">
+        <div class="welcome-box">
+            <div id="weekNo" class="week-badge">読み込み中...</div>
+            <h1 id="userName">こんにちは！</h1>
+            <p style="font-size:0.9rem; color:#666;">今日の心と体のご機嫌はいかがですか？</p>
 
-        <div class="study-box">
-            <h3>今週の学び</h3>
-            <p id="learning-text">（ここにMessageDBから自動で学び文が表示されます）</p>
+            <div class="point-card">
+                <strong style="color:#4a6741;">💡 今週の食薬Point</strong>
+                <p id="learningPoint" style="margin-top:8px; line-height:1.5;">データを取得しています...</p>
+            </div>
+
+            <div class="nav-buttons">
+                <a href="/daily" class="btn btn-main">🍴 今日の食事と舌を記録する</a>
+                <a href="/weekly" class="btn btn-sub">📊 今週の積み重ねを見る</a>
+            </div>
         </div>
     </div>
+
+    <script>
+        const userId = "U12345"; // 実際にはユーザーごとに動的に取得
+        window.onload = async () => {
+            try {
+                // APIからユーザーの現在のステータス（週数・学び文）を取得
+                const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
+                const data = await res.json();
+                
+                document.getElementById('weekNo').innerText = `第 ${data.week_no} 週目`;
+                document.getElementById('learningPoint').innerText = data.weekly_learning_text || "今日のあなたにぴったりの食薬を続けましょう。";
+            } catch (err) {
+                console.error("データ取得失敗", err);
+            }
+        };
+    </script>
 </body>
 </html>
