@@ -4,6 +4,9 @@
   "private": true,
   "dependencies": {
     "@netlify/functions": "^2.0.0",
-    "googleapis": "^140.0.0"
+    "axios": "^1.6.0",
+    "googleapis": "^140.0.0",
+    "google-spreadsheet": "^4.1.1",
+    "openai": "^4.20.0"
   }
 }
