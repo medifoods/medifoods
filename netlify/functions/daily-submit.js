@@ -1,72 +1,89 @@
 const { google } = require("googleapis");
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
+function getServiceAccount() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON");
+
+  // Netlifyの環境変数は改行が \n になっていることが多いので戻す
+  const json = JSON.parse(raw);
+  if (json.private_key) {
+    json.private_key = json.private_key.replace(/\\n/g, "\n");
+  }
+  return json;
+}
+
+async function getSheetsClient() {
+  const sa = getServiceAccount();
+
+  const auth = new google.auth.JWT({
+    email: sa.client_email,
+    key: sa.private_key,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+
+  await auth.authorize();
+  return google.sheets({ version: "v4", auth });
 }
 
 exports.handler = async (event) => {
-  // CORS preflight
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers: corsHeaders(), body: "ok" };
-  }
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders(), body: "Method Not Allowed" };
-  }
-
   try {
-    const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
-    const SA_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+        },
+        body: "ok",
+      };
+    }
 
-    if (!SPREADSHEET_ID) throw new Error("SPREADSHEET_ID is missing");
-    if (!SA_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing");
+    if (event.httpMethod !== "POST") {
+      return { statusCode: 405, body: "Method Not Allowed" };
+    }
 
-    const sa = JSON.parse(SA_JSON);
-
-    const auth = new google.auth.JWT(
-      sa.client_email,
-      null,
-      sa.private_key,
-      ["https://www.googleapis.com/auth/spreadsheets"]
-    );
-
-    const sheets = google.sheets({ version: "v4", auth });
+    const sheetId = process.env.GOOGLE_SHEET_ID;
+    if (!sheetId) throw new Error("Missing GOOGLE_SHEET_ID");
 
     const body = JSON.parse(event.body || "{}");
-    const userName = (body.userName || "").toString().trim();
-    const note = (body.note || "").toString().trim();
 
-    if (!userName) throw new Error("userName is required");
-    if (!note) throw new Error("note is required");
+    // フォームから送る項目（必要に応じて増やせます）
+    const userId = (body.userId || "").trim();
+    const text = (body.text || "").trim();
 
-    const now = new Date();
-    const iso = now.toISOString();
+    if (!text) {
+      return { statusCode: 400, body: "text is required" };
+    }
 
-    // DailyLogに追記（列は必要に応じて増やせます）
-    // A:timestamp, B:userName, C:note
+    const sheets = await getSheetsClient();
+
+    // DailyLog シートに追記（A:日時 / B:userId / C:text）
+    const now = new Date().toISOString();
+
     await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "DailyLog!A1",
+      spreadsheetId: sheetId,
+      range: "DailyLog!A:C",
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
-        values: [[iso, userName, note]],
+        values: [[now, userId, text]],
       },
     });
 
     return {
       statusCode: 200,
-      headers: { ...corsHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: true }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ok: true, appended: { now, userId, text } }),
     };
-  } catch (e) {
+  } catch (err) {
     return {
       statusCode: 500,
-      headers: { ...corsHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: false, error: e.message }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ok: false,
+        error: err.message || String(err),
+      }),
     };
   }
 };
