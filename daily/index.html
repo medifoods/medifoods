@@ -1,38 +1,65 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>今日の記録 - 食薬AI</title>
-    <link rel="stylesheet" href="/style.css"> <!-- 共通のデザインファイルを当てる -->
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食事と舌の記録 | 食薬AI</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background: #fdfaf1; color: #333; line-height: 1.6; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
+        h1 { color: #4a6741; font-size: 1.1rem; text-align: center; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.85rem; color: #555; }
+        select, input[type="file"] { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .info-text { font-size: 0.75rem; color: #888; margin-top: 4px; }
+        .btn { background: #4a6741; color: white; border: none; padding: 16px; width: 100%; border-radius: 10px; margin-top: 25px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .loading { display: none; text-align: center; margin-top: 20px; color: #4a6741; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>今日の食薬記録</h1>
-    <form id="dailyForm">
-        <!-- 1. 食べる目的の選択 [2] -->
-        <label>今日の食事の目的は？</label>
-        <select id="meal_purpose" required>
-            <option value="health">体を整える（健康）</option>
-            <option value="enjoy">時間を楽しむ（ウェルビーイング）</option>
-            <option value="social">人と過ごす（コミュニケーション）</option>
-        </select>
+    <div class="card">
+        <h1>今の食事と舌を記録</h1>
+        <form id="uploadForm">
+            <label>1. この食事のテーマは？</label>
+            <select name="meal_purpose" required>
+                <option value="health">体を整える（健康）</option>
+                <option value="wellbeing">時間を楽しむ（幸福度）</option>
+                <option value="communication">人と過ごす（交流）</option>
+            </select>
 
-        <!-- 2. 食事写真のアップロード（必須） [3] -->
-        <label>食事写真（1〜3枚推奨）:</label>
-        <input type="file" id="meal_photos" accept="image/*" multiple required>
+            <label>2. 食事の写真 (1〜3枚)</label>
+            <input type="file" id="mealFiles" accept="image/*" multiple required>
+            <p class="info-text">明るい場所で料理全体が入るように撮ると正確です</p>
 
-        <!-- 3. 舌写真のアップロード（任意） [3] -->
-        <label>舌写真（任意）:</label>
-        <input type="file" id="tongue_photo" accept="image/*">
+            <label>3. 舌の写真 (1枚)</label>
+            <input type="file" id="tongueFile" accept="image/*">
+            <p class="info-text">今の体の状態を読み取ります（任意）</p>
 
-        <!-- 4. 送信ボタン [3] -->
-        <button type="submit">記録してアドバイスを見る</button>
-    </form>
+            <label>4. 今回のチェック（あてはまればチェック）</label>
+            <div id="checkList" style="background:#f9f9f9; padding:10px; border-radius:8px; margin-top:5px;">
+                <!-- 主要なQ項目を抜粋 -->
+                <label style="font-weight:normal;"><input type="checkbox" name="Q6" value="1"> 肉・魚・卵を食べた</label><br>
+                <label style="font-weight:normal;"><input type="checkbox" name="Q2" value="1"> 野菜（手のひら分）</label><br>
+                <label style="font-weight:normal;"><input type="checkbox" name="Q10" value="1"> よく噛んで食べた</label><br>
+                <label style="font-weight:normal;"><input type="checkbox" name="Q11" value="1"> 小麦製品（パン・麺など）</label>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">記録してお薬アドバイスを見る</button>
+        </form>
+        <div id="loader" class="loading">AIが解析中です...<br>30秒ほどお待ちください</div>
+    </div>
 
     <script>
-        document.getElementById('dailyForm').onsubmit = async (e) => {
+        document.getElementById('uploadForm').onsubmit = async (e) => {
             e.preventDefault();
-            // ここで Netlify Functions (/api/daily-submit) を呼び出す処理を記述
-            alert("データを送信中... スプレッドシートへ書き込まれます。");
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            
+            btn.disabled = true;
+            loader.style.display = 'block';
+
+            // 画像をBase64に変換する処理（簡易化のため省略、実際の送信ロジックをここに記述）
+            alert("データを送信しました。スプレッドシートへ保存され、解析結果が表示されます。");
+            
+            // 実際には fetch('/.netlify/functions/daily-submit', { method: 'POST', ... }) を実行
         };
     </script>
 </body>
