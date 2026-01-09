@@ -4,21 +4,25 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>記録 | 食薬AI</title>
     <style>
-        body { font-family: sans-serif; background: #fdfaf1; padding: 20px; font-size: 1.2rem; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 35px; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        h1 { color: #4a6741; text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
-        label { font-weight: bold; color: #4a6741; display: block; margin: 25px 0 10px; font-size: 1.4rem; }
+        :root { --main: #4a6741; --bg: #fdfaf1; --minus: #e74c3c; }
+        body { font-family: sans-serif; background: var(--bg); padding: 20px; color: #333; }
+        .container { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        h1 { color: var(--main); text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
+        label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 10px; font-size: 1.4rem; }
         select, input[type="file"] { width: 100%; padding: 20px; border-radius: 15px; border: 2px solid #eee; font-size: 1.3rem; margin-bottom: 20px; box-sizing: border-box; }
-        /* 問診エリア：老眼でも押しやすい */
-        .q-group { border-top: 1px solid #f0f0f0; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; }
-        .q-text { flex: 1; font-size: 1.2rem; padding-right: 10px; }
-        .q-btns input { width: 30px; height: 30px; transform: scale(1.5); margin-left: 15px; }
-        .btn-submit { background: #4a6741; color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 30px; }
+        
+        /* 質問グループ：老眼対応 */
+        .q-card { border-bottom: 1px solid #f0f0f0; padding: 20px 0; display: flex; align-items: center; justify-content: space-between; }
+        .q-text { flex: 1; font-size: 1.2rem; line-height: 1.4; padding-right: 15px; }
+        .q-check { width: 40px; height: 40px; transform: scale(2.0); accent-color: var(--main); }
+        .minus-label { color: var(--minus); font-weight: bold; }
+        
+        .btn-submit { background: var(--main); color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 40px; box-shadow: 0 10px 20px rgba(74,103,65,0.3); }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🍴 食事と習慣の記録</h1>
+        <h1>🍴 今日の食薬記録</h1>
         <form id="dailyForm">
             <label>食事の目的</label>
             <select name="meal_purpose" required>
@@ -30,18 +34,28 @@
             <label>📸 写真（食事・舌）</label>
             <input type="file" name="photos" accept="image/*" multiple required>
 
-            <label>✍️ 今日のチェック</label>
-            <!-- スペックを落とさずQ1-Q14を網羅 [8] -->
-            <div id="questions">
-                <div class="q-group"><span class="q-text">Q1. タネ・ナッツ（5g）食べた？</span><div class="q-btns"><input type="checkbox" name="Q1"></div></div>
-                <div class="q-group"><span class="q-text">Q2. 野菜（両手分）食べた？</span><div class="q-btns"><input type="checkbox" name="Q2"></div></div>
-                <div class="q-group"><span class="q-text">Q6. たんぱく質（手のひら大）食べた？</span><div class="q-btns"><input type="checkbox" name="Q6"></div></div>
-                <div class="q-group"><span class="q-text">Q10. 30回以上よく噛んで食べた？</span><div class="q-btns"><input type="checkbox" name="Q10"></div></div>
-                <div class="q-group" style="background:#fff0f0;"><span class="q-text">Q11. 小麦製品を食べた？（減点）</span><div class="q-btns"><input type="checkbox" name="Q11"></div></div>
+            <label>✍️ 今日の習慣チェック</label>
+            <div id="questionnaire">
+                <!-- 加点項目 -->
+                <div class="q-card"><span class="q-text">Q1. タネ・ナッツ（5g）食べた？</span><input type="checkbox" name="Q1" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q2. 野菜（両手分）食べた？</span><input type="checkbox" name="Q2" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q3. 旬の野菜を食べた？</span><input type="checkbox" name="Q3" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q4. 海藻類を食べた？</span><input type="checkbox" name="Q4" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q5. キノコ類を食べた？</span><input type="checkbox" name="Q5" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q6. たんぱく質（手のひら大）食べた？</span><input type="checkbox" name="Q6" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q7. 魚を食べた？</span><input type="checkbox" name="Q7" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q8. 味噌汁を飲んだ？</span><input type="checkbox" name="Q8" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q9. 空腹を感じてから食べた？</span><input type="checkbox" name="Q9" class="q-check"></div>
+                <div class="q-card"><span class="q-text">Q10. 30回以上よく噛んで食べた？</span><input type="checkbox" name="Q10" class="q-check"></div>
+                
+                <!-- 減点項目：背景色を変えて注意を促す -->
+                <div class="q-card" style="background:#fff5f5;"><span class="q-text minus-label">Q11. 小麦製品を食べた？</span><input type="checkbox" name="Q11" class="q-check"></div>
+                <div class="q-card" style="background:#fff5f5;"><span class="q-text minus-label">Q12. 甘いもの・飲み物をとった？</span><input type="checkbox" name="Q12" class="q-check"></div>
+                <div class="q-card" style="background:#fff5f5;"><span class="q-text minus-label">Q13. 揚げ物を食べた？</span><input type="checkbox" name="Q13" class="q-check"></div>
+                <div class="q-card" style="background:#fff5f5;"><span class="q-text minus-label">Q14. お酒・カフェイン（3杯以上）？</span><input type="checkbox" name="Q14" class="q-check"></div>
             </div>
-            <!-- ※ここにQ3-Q14を同様に並べられます -->
 
-            <button type="submit" class="btn-submit">記録して診断を見る</button>
+            <button type="submit" class="btn-submit">記録を送信して診断を見る</button>
         </form>
     </div>
 </body>
