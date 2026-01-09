@@ -1,10 +1,10 @@
 [build]
-  command = "echo 'skip build'"
   publish = "."
   functions = "netlify/functions"
+  command = "echo no-build"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/api/*"
