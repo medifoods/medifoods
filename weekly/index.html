@@ -1,12 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>今週のふり返り</title></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今週のふり返り | 食薬AI</title>
+    <!-- グラフライブラリ Chart.js の読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.2rem; text-align: center; color: #4a6741; }
+        .chart-area { margin: 20px 0; height: 300px; }
+        .note { font-size: 0.8rem; color: #666; text-align: center; margin-top: 10px; }
+    </style>
+</head>
 <body>
-    <div id="learning-section"> <!-- 今週の学び（52週文） [32] --> </div>
-    <div id="policy-section"> <!-- 翌週の方針（9パターン） [33] --> </div>
-    <div id="recipe-section"> <!-- AI生成レシピ・買い物リスト [34] --> </div>
-</body>
-</html>
+    <div class="container">
+        <h1>今週の積み重ね</h1>
+        
+        <!-- グラフを表示する場所 -->
+        <div class="chart-area">
+            <canvas id="weeklyChart"></canvas>
+        </div>
 
+        <div id="statusMessage" class="note">データを読み込み中...</div>
+        
+        <p class="note">数値は目安です。大切なのは自分の体の声に耳を傾けることです [1, 2]。</p>
+    </div>
+
+    <script>
+        async function initWeeklyPage() {
+            try {
+                // 1. APIから集計データを取得（user_idは運用に合わせて変更）
+                const response = await fetch('/.netlify/functions/get-summary?user_id=U12345');
+                const data = await response.json();
+
+                if (!data.base_avg_all) {
+                    document.getElementById('statusMessage').innerText = "データが貯まるとグラフが表示されます";
+                    return;
+                }
+
+                // 2. グラフの描画
+                const ctx = document.getElementById('weeklyChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['先週以前のベース', '今週のあなた'],
+                        datasets: [
+                            {
+                                label: 'これまでの積み重ね',
+                                data: [data.base_avg_all, data.base_avg_all],
+                                borderColor: 'rgba(75, 192, 192, 0.4)',
+                                borderDash: [3], // 累積は穏やかな点線で表現 [4]
+                                fill: false,
+                                pointRadius: 0
+                            },
+                            {
+                                label: '直近の傾向',
+                                data: [null, data.base_avg_7d], // 今週の地点だけ表示
+                                borderColor: '#ff6384',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                fill: true,
+                                pointRadius: 8,
+                                pointHoverRadius: 10
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { min: 0, max: 100, title: { display: true, text: '食薬スコア' } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                document.getElementById('statusMessage').innerText = "順調に積み上がっています！";
+            } catch (err) {
+                console.error(err);
+                document.getElementById('statusMessage').innerText = "データの取得に失敗しました";
+            }
+        }
+        window.onload = initWeeklyPage;
+    </script>
 </body>
 </html>
