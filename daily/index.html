@@ -1,16 +1,39 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="UTF-8"><title>今日の食薬記録</title></head>
+<head>
+    <meta charset="UTF-8">
+    <title>今日の記録 - 食薬AI</title>
+    <link rel="stylesheet" href="/style.css"> <!-- 共通のデザインファイルを当てる -->
+</head>
 <body>
     <h1>今日の食薬記録</h1>
-    <!-- 目的選択：健康・幸福度・コミュニケーション [27] -->
-    <select id="purpose">
-        <option value="health">体を整える（健康）</option>
-        <option value="enjoy">時間を楽しむ（幸福度）</option>
-        <option value="social">人と過ごす（コミュニケーション）</option>
-    </select>
-    <!-- 写真と毎日問診（Q1〜Q10）[28, 29] -->
-    <input type="file" accept="image/*" id="meal-photo">
-    <button onclick="submitDaily()">記録してアドバイスを見る</button>
+    <form id="dailyForm">
+        <!-- 1. 食べる目的の選択 [2] -->
+        <label>今日の食事の目的は？</label>
+        <select id="meal_purpose" required>
+            <option value="health">体を整える（健康）</option>
+            <option value="enjoy">時間を楽しむ（ウェルビーイング）</option>
+            <option value="social">人と過ごす（コミュニケーション）</option>
+        </select>
+
+        <!-- 2. 食事写真のアップロード（必須） [3] -->
+        <label>食事写真（1〜3枚推奨）:</label>
+        <input type="file" id="meal_photos" accept="image/*" multiple required>
+
+        <!-- 3. 舌写真のアップロード（任意） [3] -->
+        <label>舌写真（任意）:</label>
+        <input type="file" id="tongue_photo" accept="image/*">
+
+        <!-- 4. 送信ボタン [3] -->
+        <button type="submit">記録してアドバイスを見る</button>
+    </form>
+
+    <script>
+        document.getElementById('dailyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            // ここで Netlify Functions (/api/daily-submit) を呼び出す処理を記述
+            alert("データを送信中... スプレッドシートへ書き込まれます。");
+        };
+    </script>
 </body>
 </html>
