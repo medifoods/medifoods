@@ -1,32 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>今週のふり返り</title>
-  <style>
-    body{font-family:system-ui, sans-serif; max-width:720px; margin:24px auto; padding:0 12px;}
-    button{padding:10px 16px; font-size:16px;}
-    pre{background:#f6f6f6; padding:12px; overflow:auto; margin-top:12px;}
-  </style>
-</head>
+<head><meta charset="UTF-8"><title>今週のふり返り</title></head>
 <body>
-  <h1>今週のふり返り（テスト）</h1>
-  <button id="runBtn">読み取りテスト実行</button>
-  <pre id="result">(まだ実行していません)</pre>
+    <div id="learning-section"> <!-- 今週の学び（52週文） [32] --> </div>
+    <div id="policy-section"> <!-- 翌週の方針（9パターン） [33] --> </div>
+    <div id="recipe-section"> <!-- AI生成レシピ・買い物リスト [34] --> </div>
+</body>
+</html>
 
-  <script>
-    const resultEl = document.getElementById("result");
-    document.getElementById("runBtn").addEventListener("click", async () => {
-      resultEl.textContent = "実行中...";
-      try {
-        const res = await fetch("/.netlify/functions/weekly-generate");
-        const data = await res.json().catch(() => ({}));
-        resultEl.textContent = JSON.stringify({ status: res.status, data }, null, 2);
-      } catch (e) {
-        resultEl.textContent = "エラー: " + e.message;
-      }
-    });
-  </script>
 </body>
 </html>
