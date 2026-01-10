@@ -7,20 +7,21 @@ exports.handler = async (event) => {
         const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
         await doc.useServiceAccountAuth({
             client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/gm, '\n'),
+            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/gm, '\n'), // 改行コードの自動修正 [8, 9]
         });
         await doc.loadInfo();
         const sheet = doc.sheetsByTitle['Users'];
         const data = querystring.parse(event.body);
 
-        // 指定したヘッダー名と完全に一致するキーでデータを追加
+        // スプレッドシートのヘッダー名と完全に一致させる [1]
         await sheet.addRow({
             user_id: data.user_id,
             display_name: data.display_name,
             birth_date: data.birth_date,
             gender: data.gender,
             start_date: data.start_date,
-            group_code: data.group_code || "一般", // フランチャイズ分類用
+            group_code: data.group_code || "一般",
+            // week_no, day_no は数式に任せるため記述不要
             character_name: "ライオン",
             current_status: "NORMAL",
             daily_enabled: "TRUE",
