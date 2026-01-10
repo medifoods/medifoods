@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー登録 | 食薬AI</title>
+    <style>
+        body { font-family: sans-serif; background: #fdfaf1; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        h1 { color: #4a6741; text-align: center; font-size: 1.5rem; }
+        label { display: block; margin-top: 20px; font-weight: bold; color: #4a6741; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        .btn { width: 100%; background: #4a6741; color: white; padding: 15px; border: none; border-radius: 10px; margin-top: 30px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦁 はじめての食薬登録</h1>
+        <p style="font-size: 0.9rem; color: #666;">あなたの体質に合わせたアドバイスを送るために、少しだけ教えてね。</p>
+        <form id="regForm">
+            <label>お名前（ニックネーム可）</label>
+            <input type="text" name="display_name" required placeholder="ライオン丸">
+
+            <label>生年月日</label>
+            <input type="date" name="birth_date" required>
+
+            <label>性別</label>
+            <select name="gender">
+                <option value="female">女性</option><option value="male">男性</option><option value="other">その他</option>
+            </select>
+
+            <label>現在の健康状態・悩み</label>
+            <input type="text" name="health_condition" placeholder="疲れやすい、むくみなど">
+
+            <button type="submit" class="btn">登録してスタート！</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('regForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            // 実際はLINEのUIDを取得しますが、まずはテスト用にIDを固定または発行
+            const userId = "U" + Math.floor(Math.random() * 100000); 
+            formData.append('user_id', userId);
+
+            try {
+                const res = await fetch('/.netlify/functions/user-register', { method: 'POST', body: formData });
+                if (res.ok) {
+                    alert("登録が完了しました！");
+                    // 登録後はHOME画面へ（IDをURLに付与して紐付け）
+                    window.location.href = `/home/?user_id=${userId}`;
+                }
+            } catch (err) { alert("エラーが発生しました。"); }
+        };
+    </script>
+</body>
+</html>
