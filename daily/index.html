@@ -7,52 +7,55 @@
         :root { --main: #4a6741; --bg: #fdfaf1; --plus: #e8f5e9; --minus: #fff3e0; --error: #e74c3c; }
         body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 15px; color: #333; line-height: 1.6; }
         .container { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
-        /* キャラクターエリア：10段階対応 */
-        .char-box { text-align: center; background: #f9fbf8; padding: 20px; border-radius: 30px; border: 2px solid #eef2ed; margin-bottom: 25px; }
-        .char-img { font-size: 80px; display: block; }
-        .char-msg { font-size: 1.2rem; font-weight: bold; color: var(--main); margin-top: 5px; }
+        
+        /* 1. 累計メッセージの強調 */
+        .alert-box { background: #fff5f5; border: 2px solid var(--error); padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 25px; }
+        .alert-box b { color: var(--error); font-size: 1.3rem; display: block; margin-bottom: 5px; }
 
-        h1 { color: var(--main); text-align: center; font-size: 1.6rem; margin: 0 0 10px; }
-        .desc { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 25px; }
+        .char-box { text-align: center; background: #f9fbf8; padding: 20px; border-radius: 30px; border: 2px solid #eef2ed; margin-bottom: 25px; }
+        .char-img { font-size: 80px; }
+        h1 { color: var(--main); text-align: center; font-size: 1.6rem; margin: 0; }
 
         label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 8px; font-size: 1.3rem; }
-        select, input[type="range"] { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #eee; font-size: 1.2rem; margin-bottom: 10px; box-sizing: border-box; }
+        select, input[type="range"] { width: 100%; padding: 18px; border-radius: 12px; border: 2px solid #eee; font-size: 1.2rem; margin-bottom: 10px; box-sizing: border-box; background: white; }
         
-        /* 写真アップロード：撮影/選択両対応 */
-        .file-input-box { background: #f0f4ee; border: 2px dashed var(--main); padding: 25px; border-radius: 20px; text-align: center; cursor: pointer; }
-        .file-input-box p { margin: 5px 0; font-weight: bold; color: var(--main); }
-        input[type="file"] { display: none; } /* 本物のボタンは隠してラベルで装飾 */
+        /* 2. 直接撮影ボタンの改善 */
+        .file-input-box { background: #f0f4ee; border: 2px dashed var(--main); padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; display: block; }
+        .file-input-box span { font-size: 3rem; display: block; }
+        .file-input-box p { margin: 10px 0 0; font-weight: bold; color: var(--main); font-size: 1.2rem; }
 
-        /* 習慣チェック：加点・減点の視覚化 */
+        /* 3. 14問の質問を詳しく（ソース準拠） */
         .section-tag { font-size: 1.1rem; font-weight: bold; padding: 8px 15px; border-radius: 8px; margin-top: 30px; display: inline-block; color: white; }
         .plus-tag { background: var(--main); }
         .minus-tag { background: var(--error); }
-        .q-card { display: flex; align-items: center; justify-content: space-between; padding: 18px; margin: 10px 0; border-radius: 15px; border: 1px solid #eee; }
+        .q-card { padding: 20px; margin: 12px 0; border-radius: 20px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
         .q-text { flex: 1; font-size: 1.2rem; font-weight: bold; }
-        .q-check { width: 40px; height: 40px; transform: scale(1.8); accent-color: var(--main); }
+        .q-sub { font-size: 0.9rem; color: #666; font-weight: normal; display: block; margin-top: 4px; }
+        .q-check { width: 45px; height: 45px; transform: scale(1.8); accent-color: var(--main); cursor: pointer; }
 
-        .slider-label { display: flex; justify-content: space-between; font-size: 0.9rem; color: #666; margin-top: -5px; margin-bottom: 15px; }
-        .btn-submit { background: var(--main); color: white; width: 100%; padding: 28px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.8rem; cursor: pointer; margin-top: 40px; box-shadow: 0 10px 25px rgba(74,103,65,0.3); }
-
-        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .btn-submit { background: var(--main); color: white; width: 100%; padding: 28px; border-radius: 25px; border: none; font-weight: bold; font-size: 1.8rem; cursor: pointer; margin-top: 40px; box-shadow: 0 10px 25px rgba(74,103,65,0.3); }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 3000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
     </style>
 </head>
 <body>
-    <!-- 診断中の演出 -->
     <div id="loading" class="loading-overlay">
         <div style="font-size: 80px;">🦁</div>
         <p style="font-weight: bold; color: #4a6741; font-size: 1.6rem; margin: 20px;">AIがじっくり診察中...</p>
-        <p style="color: #666;">（15秒ほどかかる場合があります）</p>
     </div>
 
     <div class="container">
+        <!-- 累計メッセージの強調 -->
+        <div class="alert-box">
+            <b>📢 食べたその都度登録してください！</b>
+            一日分として累計されます。
+        </div>
+
         <div class="char-box">
             <span id="displayChar" class="char-img">🦁</span>
-            <p id="displayMsg" class="char-msg">今のあなたを教えてね！</p>
+            <p style="font-weight:bold; color:var(--main); margin-top:10px;">今の内容を詳しく教えてね！</p>
         </div>
 
         <h1>🍴 今の食薬記録</h1>
-        <p class="desc">都度登録OK。一日分として累計されます。</p>
 
         <form id="dailyForm">
             <label>🍽️ 今の食事の目的</label>
@@ -62,36 +65,56 @@
                 <option value="social">人と過ごす（交流）</option>
             </select>
 
-            <!-- 写真撮影/選択エリア -->
+            <!-- 撮影/選択：capture="environment"を追加してカメラ直結を強化 -->
             <label>📸 写真（食事・舌など）</label>
             <label class="file-input-box">
-                <p>ここをタップして</p>
-                <p>📷 撮影 または 📁 選択</p>
-                <!-- accept="image/*" により、スマホではカメラ起動かファイル選択かを選べます -->
-                <input type="file" name="photos" accept="image/*" multiple required onchange="showFileCount(this)">
-                <div id="fileCount" style="margin-top:10px; color:var(--main); font-weight:bold;"></div>
+                <span>📷</span>
+                <p>今すぐ撮影 または 写真を選択</p>
+                <input type="file" name="photos" accept="image/*" capture="environment" multiple required onchange="document.getElementById('fileStat').innerText = this.files.length + '枚選択中'">
+                <div id="fileStat" style="margin-top:10px; font-weight:bold; color:var(--main);"></div>
             </label>
 
-            <!-- 習慣チェック（スペック維持） -->
+            <!-- Q1-Q14 具体化（ソース[2, 3]準拠） -->
             <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
             <div id="plusQs"></div>
+
             <div class="section-tag minus-tag">⚠️ 負担をかけた習慣（減点）</div>
             <div id="minusQs"></div>
 
-            <!-- 体調・尿・便・睡眠（復活） -->
+            <!-- 5段階評価（便、尿、睡眠） -->
             <label>🌡️ 今の状態（各10段階）</label>
-            <p style="margin: 0; font-size: 1rem; font-weight: bold;">心の状態</p>
+            <p style="margin:0; font-size:1rem;">心の状態 (1:悪い 〜 10:良い)</p>
             <input type="range" name="mind_state" min="1" max="10" value="5">
-            <div class="slider-label"><span>最悪</span><span>普通</span><span>最高</span></div>
-
-            <p style="margin: 0; font-size: 1rem; font-weight: bold;">体の状態</p>
+            <p style="margin:0; font-size:1rem;">体の状態 (1:悪い 〜 10:良い)</p>
             <input type="range" name="body_state" min="1" max="10" value="5">
-            <div class="slider-label"><span>最悪</span><span>普通</span><span>最高</span></div>
 
-            <label>🚽 排泄・睡眠のチェック</label>
-            <select name="stool_state"><option value="良好">💩 便の状態：スッキリ</option><option value="不調">便の状態：コロコロ/緩い</option></select>
-            <select name="urine_state"><option value="正常">💧 尿の色：透明〜淡黄色</option><option value="濃い">尿の色：濃い（水分不足）</option></select>
-            <select name="sleep_quality"><option value="良好">😴 睡眠：ぐっすり</option><option value="浅い">睡眠：目が覚めた/不足</option></select>
+            <label>🚽 排泄・睡眠のチェック（5段階）</label>
+            <p style="margin:0; font-size:1rem;">💩 便の状態</p>
+            <select name="stool_state" required>
+                <option value="5">5：非常にスッキリ・理想的</option>
+                <option value="4">4：ややスッキリ</option>
+                <option value="3" selected>3：普通</option>
+                <option value="2">2：やや不調（硬い・緩い）</option>
+                <option value="1">1：かなり不調（便秘・下痢）</option>
+            </select>
+
+            <p style="margin:0; font-size:1rem;">💧 尿の状態</p>
+            <select name="urine_state" required>
+                <option value="5">5：透き通った淡黄色（理想）</option>
+                <option value="4">4：少し色が濃い</option>
+                <option value="3" selected>3：普通</option>
+                <option value="2">2：かなり色が濃い（水分不足）</option>
+                <option value="1">1：非常に濃い、または違和感あり</option>
+            </select>
+
+            <p style="margin:0; font-size:1rem;">😴 睡眠の質</p>
+            <select name="sleep_quality" required>
+                <option value="5">5：ぐっすり熟睡できた</option>
+                <option value="4">4：概ねよく眠れた</option>
+                <option value="3" selected>3：普通</option>
+                <option value="2">2：浅い、または何度か目が覚めた</option>
+                <option value="1">1：寝付けない、または著しい不足</option>
+            </select>
 
             <button type="submit" class="btn-submit">記録を送信して診断へ</button>
         </form>
@@ -99,35 +122,39 @@
 
     <script>
         const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
-        const charList = ["🦁","🐰","🐻","🐼","🐶","🐱","🐨","🐢","🐥","👻"]; // 1:ライオンが最強
-
-        // Q1-Q14項目の生成
-        const plusList = [{id:1,t:"ナッツ類"},{id:2,t:"野菜(両手分)"},{id:3,t:"旬の野菜"},{id:4,t:"海藻類"},{id:5,t:"キノコ類"},{id:6,t:"たんぱく質"},{id:7,t:"魚"},{id:8,t:"味噌汁"},{id:9,t:"空腹感あり"},{id:10,t:"よく噛んだ"}];
-        const minusList = [{id:11,t:"小麦製品"},{id:12,t:"甘い物"},{id:13,t:"揚げ物"},{id:14,t:"お酒/カフェイン"}];
+        
+        // ソース[2, 3]に基づく具体的な質問文
+        const plusList = [
+            {id:1, t:"タネ・ナッツ（5g程度）", s:"ごまやアーモンドなどを食べた"},
+            {id:2, t:"野菜（片手のひら分以上）", s:"生野菜や温野菜を毎食意識して食べた"},
+            {id:3, t:"旬の野菜を食べた", s:"季節のエネルギーを取り入れた"},
+            {id:4, t:"海藻類（わかめ・昆布等）", s:"ミネラル豊富な海藻を片手分食べた"},
+            {id:5, t:"キノコ類を食べた", s:"食物繊維を意識してきのこを食べた"},
+            {id:6, t:"たんぱく質（手のひら大）", s:"肉・魚・卵・豆類を規定量食べた"},
+            {id:7, t:"特に「魚」を食べた", s:"良質な脂質（オメガ3）を補給した"},
+            {id:8, t:"味噌汁を飲んだ", s:"発酵食品と水分を同時に摂った"},
+            {id:9, t:"空腹を感じてから食べた", s:"胃腸を休ませ、消化の準備ができてから食べた"},
+            {id:10, t:"一口30回以上よく噛んだ", s:"丁寧に咀嚼して消化を助けた"}
+        ];
+        const minusList = [
+            {id:11, t:"小麦製品を食べた", s:"パン、麺類、パスタなどの摂取"},
+            {id:12, t:"甘いもの・甘い飲み物", s:"菓子類や加糖飲料の摂取"},
+            {id:13, t:"揚げ物を食べた", s:"天ぷら、唐揚げ、油の多い食事の摂取"},
+            {id:14, t:"お酒・カフェイン（3杯以上）", s:"アルコールやコーヒー等の過剰摂取"}
+        ];
 
         const render = (list, target, color) => {
             list.forEach(q => {
-                document.getElementById(target).innerHTML += `<div class="q-card" style="background:${color}"><span class="q-text">Q${q.id}. ${q.t}を摂った</span><input type="checkbox" name="Q${q.id}" class="q-check"></div>`;
+                document.getElementById(target).innerHTML += `
+                    <div class="q-card" style="background:${color}">
+                        <div class="q-text">Q${q.id}. ${q.t} <span class="q-sub">${q.s}</span></div>
+                        <input type="checkbox" name="Q${q.id}" class="q-check">
+                    </div>`;
             });
         };
         render(plusList, 'plusQs', '#e8f5e9'); render(minusList, 'minusQs', '#fff3e0');
 
-        function showFileCount(input) {
-            const count = input.files.length;
-            document.getElementById('fileCount').innerText = count > 0 ? `${count}枚の写真を選択中` : "";
-        }
-
-        // 初期キャラ読み込み
-        window.onload = async () => {
-            try {
-                const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
-                const data = await res.json();
-                const level = data.char_status_logic || 1;
-                document.getElementById('displayChar').innerText = charList[level-1];
-            } catch(e) { console.error("Data error"); }
-        };
-
-        // 送信処理（ループ防止＆エラーハンドリング）
+        // 送信処理とリダイレクト（結果が表示されないバグを修正）
         document.getElementById('dailyForm').onsubmit = async (e) => {
             e.preventDefault();
             document.getElementById('loading').style.display = 'flex';
@@ -138,11 +165,16 @@
                 const res = await fetch('/.netlify/functions/daily-submit', { method: 'POST', body: formData });
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                // 成功したら診断結果ページへ正しく移動
-                window.location.href = `/result?log_id=${data.log_id}&user_id=${userId}`;
+                
+                // 結果ページ（/result）へ確実に飛ばす
+                if (data.log_id) {
+                    window.location.href = `/result?log_id=${data.log_id}&user_id=${userId}`;
+                } else {
+                    throw new Error("ID取得失敗");
+                }
             } catch (err) {
                 document.getElementById('loading').style.display = 'none';
-                alert("送信エラーです。写真の画質を落とすか、もう一度お試しください。");
+                alert("送信に失敗しました。写真のサイズを小さくするか、もう一度お試しください。");
             }
         };
     </script>
