@@ -1,7 +1,9 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 
 exports.handler = async (event) => {
+    // URLからユーザーIDを取得。無ければ U12345 を使用
     const userId = event.queryStringParameters.user_id || "U12345";
+    
     try {
         const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
         await doc.useServiceAccountAuth({
@@ -10,23 +12,34 @@ exports.handler = async (event) => {
         });
         await doc.loadInfo();
 
-        // Usersシートから直接そのユーザーの情報を探す
-        const userSheet = doc.sheetsByTitle['Users'];
-        const rows = await userSheet.getRows();
-        const user = rows.find(r => r.user_id === userId);
+        // 集計用の 'Agg' シートからデータを読み込む
+        const aggSheet = doc.sheetsByTitle['Agg'];
+        const rows = await aggSheet.getRows();
+        const userAgg = rows.find(r => r.user_id === userId);
 
-        if (!user) throw new Error("User Not Found");
+        if (!userAgg) {
+            throw new Error("User Not Found in Agg sheet");
+        }
 
+        // フロントエンド（画面）に返すデータ。ここが文字化けやコード漏れを防ぐポイントです
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             body: JSON.stringify({
-                week_no: user.week_no || 1,
-                character_name: user.character_name || "ライオン",
-                current_status: user.current_status || "NORMAL"
+                week_no: userAgg.current_week_no || 1,
+                weekly_learning_text: userAgg.weekly_learning_text || "今週も頑張りましょう！",
+                char_status_logic: userAgg.char_status_logic || "NORMAL"
             })
         };
     } catch (error) {
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        console.error("API Error:", error);
+        return {
+            statusCode: 500,
+            headers: { "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({ error: error.message })
+        };
     }
 };
