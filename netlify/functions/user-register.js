@@ -1,4 +1,5 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
+const querystring = require('querystring');
 
 exports.handler = async (event) => {
     if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
@@ -12,19 +13,29 @@ exports.handler = async (event) => {
         await doc.loadInfo();
 
         const sheet = doc.sheetsByTitle['Users'];
-        const data = require('querystring').parse(event.body);
+        const data = querystring.parse(event.body);
 
-        // 新規ユーザーを行として追加 [6, 8]
+        // スプレッドシートの列名（ヘッダー）と一致させて追加
         await sheet.addRow({
             user_id: data.user_id,
             display_name: data.display_name,
-            start_date: new Date().toISOString().split('T'), // 講座開始日 [6]
+            birth_date: data.birth_date,
+            gender: data.gender,
+            start_date: data.start_date,
+            group_code: data.group_code || "一般",
+            // week_no, day_no はスプレッドシートの数式で自動計算されるため空欄でOK
+            character_name: "ライオン",
+            current_status: "NORMAL",
             daily_enabled: "TRUE",
             weekly_enabled: "TRUE",
-            notes: `状態: ${data.health_condition}`
+            notes: data.notes
         });
 
-        return { statusCode: 200, body: JSON.stringify({ message: "Success", user_id: data.user_id }) };
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({ message: "Success", user_id: data.user_id })
+        };
     } catch (error) {
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
