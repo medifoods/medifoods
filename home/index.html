@@ -1,76 +1,18 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ホーム | 食薬AI</title>
-    <style>
-        :root { --main: #4a6741; --bg: #fdfaf1; }
-        body { font-family: "Hiragino Sans", sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: #333; line-height: 1.6; }
-        .card { background: white; border-radius: 35px; padding: 35px 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); text-align: center; max-width: 500px; margin: auto; }
-        .badge { background: var(--main); color: white; padding: 10px 25px; border-radius: 50px; font-size: 1.3rem; display: inline-block; margin-bottom: 15px; font-weight: bold; }
-        h1 { color: var(--main); font-size: 2rem; margin: 10px 0; }
-        
-        /* 実績表示エリア（充実化） */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0; }
-        .stat-item { background: #f9fbf8; padding: 15px; border-radius: 20px; border: 1px solid #eef2ed; }
-        .stat-label { font-size: 0.9rem; color: #666; display: block; }
-        .stat-value { font-size: 1.6rem; font-weight: bold; color: var(--main); }
-
-        .btn { display: block; padding: 22px; border-radius: 20px; margin: 15px 0; font-weight: bold; font-size: 1.4rem; text-decoration: none; transition: 0.3s; }
-        .btn-main { background: var(--main); color: white; box-shadow: 0 10px 25px rgba(74,103,65,0.2); }
-        .btn-sub { background: #f0f4ee; color: var(--main); }
-        
-        .info-box { background: #fff; padding: 25px; border-radius: 25px; text-align: left; border: 2px solid #f0f4ee; margin-top: 25px; }
-        .info-title { color: var(--main); font-weight: bold; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .info-text { font-size: 1.2rem; color: #444; margin: 0; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div id="weekDisplay" class="badge">第 -- 週目</div>
-        <div style="font-size: 80px; margin: 10px 0;">🧑‍🍳</div>
-        <h1>こんにちは！</h1>
-        <p style="font-size: 1.2rem; color: #666;">今のあなたに必要な食薬を届けます</p>
-
-        <!-- 実績の可視化 -->
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="stat-label">昨日の基礎スコア</span>
-                <span id="yesterdayScore" class="stat-value">--</span><small>点</small>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">これまでの積み重ね</span>
-                <span id="totalAvg" class="stat-value">--</span><small>点</small>
-            </div>
-        </div>
-        
-        <a href="/daily" class="btn btn-main">🍴 今日の食事を記録</a>
-        <a href="/weekly" class="btn btn-sub">📊 今週のふり返り</a>
-        <a href="https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit#gid=YOUR_SHEET_ID" class="btn btn-sub" style="font-size: 1.1rem; padding: 15px;">📈 3か月の累積データを見る</a>
-        
-        <div class="info-box">
-            <span class="info-title">💡 今週の食薬Point</span>
-            <p id="learningPoint" class="info-text">読み込み中...</p>
-        </div>
-    </div>
-
-    <script>
-        const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
-        window.onload = async () => {
-            try {
-                const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
-                const data = await res.json();
-                
-                // undefinedを防ぐための代替処理
-                document.getElementById('weekDisplay').innerText = `第 ${data.week_no || 1} 週目`;
-                document.getElementById('learningPoint').innerText = data.weekly_learning_text || "食薬で心と体を整えましょう。";
-                document.getElementById('yesterdayScore').innerText = data.y_base || "0";
-                document.getElementById('totalAvg').innerText = parseFloat(data.base_avg_all || 0).toFixed(1);
-            } catch (e) {
-                console.error(e);
-                document.getElementById('learningPoint').innerText = "データの取得に失敗しました。";
-            }
-        };
-    </script>
-</body>
-</html>
+<script>
+    window.onload = async () => {
+        try {
+            const res = await fetch(`/.netlify/functions/get-summary?user_id=${userId}`);
+            const data = await res.json();
+            
+            // データがない（初日）場合の自然な出し分け
+            document.getElementById('weekDisplay').innerText = `第 ${data.week_no || 1} 週目`;
+            document.getElementById('yesterdayScore').innerText = data.y_base !== null ? data.y_base : "記録待機中";
+            document.getElementById('totalAvg').innerText = data.base_avg_all > 0 ? parseFloat(data.base_avg_all).toFixed(1) : "明日から反映";
+            
+            // 今週の学び（初日は1週目の定型文を表示） [6]
+            document.getElementById('learningPoint').innerText = data.weekly_learning_text || "まずは自分の現状を知ることから始めましょう。";
+        } catch (e) {
+            document.getElementById('learningPoint').innerText = "あなたの食薬習慣をここからサポートします。";
+        }
+    };
+</script>
