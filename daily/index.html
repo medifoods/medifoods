@@ -6,48 +6,55 @@
     <style>
         :root { --main: #4a6741; --bg: #fdfaf1; --plus: #e8f5e9; --minus: #fff3e0; --error: #e74c3c; }
         body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 15px; color: #333; line-height: 1.6; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        .container { max-width: 550px; margin: auto; background: white; padding: 25px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
         
         /* 累計メッセージの強調 */
-        .alert-box { background: #fff5f5; border: 3px solid var(--error); padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 25px; }
-        .alert-box b { color: var(--error); font-size: 1.4rem; display: block; margin-bottom: 8px; }
+        .alert-box { background: #fff5f5; border: 3px solid var(--error); padding: 15px; border-radius: 20px; text-align: center; margin-bottom: 25px; }
+        .alert-box b { color: var(--error); font-size: 1.3rem; display: block; margin-bottom: 5px; }
+        .alert-box p { margin: 0; font-weight: bold; color: #333; }
 
-        h1 { color: var(--main); text-align: center; font-size: 1.8rem; margin: 20px 0; }
+        .char-box { text-align: center; background: #f9fbf8; padding: 15px; border-radius: 30px; border: 2px solid #eef2ed; margin-bottom: 20px; }
+        .char-img { font-size: 70px; }
+        h1 { color: var(--main); text-align: center; font-size: 1.6rem; margin: 10px 0; }
+
         label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 8px; font-size: 1.3rem; }
-        select, input[type="range"] { width: 100%; padding: 20px; border-radius: 15px; border: 2px solid #eee; font-size: 1.2rem; margin-bottom: 15px; box-sizing: border-box; background: #fff; }
+        select, input[type="range"] { width: 100%; padding: 18px; border-radius: 15px; border: 2px solid #eee; font-size: 1.2rem; margin-bottom: 12px; box-sizing: border-box; background: #fff; }
         
-        /* 直接撮影ボタンの強化 */
-        .camera-btn { background: #f0f4ee; border: 3px dashed var(--main); padding: 35px; border-radius: 25px; text-align: center; cursor: pointer; display: block; }
-        .camera-btn span { font-size: 3.5rem; display: block; }
-        .camera-btn p { margin: 10px 0 0; font-weight: bold; color: var(--main); font-size: 1.3rem; }
+        /* 写真アップロード（標準対応） */
+        .file-upload-label { background: #f0f4ee; border: 3px dashed var(--main); padding: 25px; border-radius: 20px; text-align: center; cursor: pointer; display: block; }
+        .file-upload-label span { font-size: 2.5rem; display: block; }
+        .file-upload-label p { margin: 10px 0 0; font-weight: bold; color: var(--main); }
         input[type="file"] { display: none; }
 
-        /* 14問の質問：詳しく具体化 */
-        .section-tag { font-size: 1.1rem; font-weight: bold; padding: 8px 15px; border-radius: 8px; margin-top: 35px; display: inline-block; color: white; }
+        /* 14問の質問を詳しく（ソース準拠） */
+        .section-tag { font-size: 1.1rem; font-weight: bold; padding: 8px 15px; border-radius: 8px; margin-top: 30px; display: inline-block; color: white; }
         .plus-tag { background: var(--main); }
         .minus-tag { background: var(--error); }
-        .q-card { padding: 20px; margin: 12px 0; border-radius: 20px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+        .q-card { padding: 18px; margin: 10px 0; border-radius: 20px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .q-text { flex: 1; font-size: 1.2rem; font-weight: bold; }
-        .q-sub { font-size: 0.95rem; color: #666; font-weight: normal; display: block; margin-top: 5px; }
-        .q-check { width: 50px; height: 50px; transform: scale(2.0); accent-color: var(--main); }
+        .q-sub { font-size: 0.9rem; color: #666; font-weight: normal; display: block; margin-top: 3px; }
+        .q-check { width: 45px; height: 45px; transform: scale(1.8); accent-color: var(--main); }
 
-        .btn-submit { background: var(--main); color: white; width: 100%; padding: 30px; border-radius: 25px; border: none; font-weight: bold; font-size: 1.7rem; cursor: pointer; margin-top: 50px; }
+        .btn-submit { background: var(--main); color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 40px; box-shadow: 0 10px 25px rgba(74,103,65,0.3); }
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
     <div id="loading" class="loading-overlay">
         <div style="font-size: 80px;">🦁</div>
-        <p style="font-weight: bold; color: #4a6741; font-size: 1.6rem; margin-top: 20px;">AIがアドバイスを準備中...</p>
+        <p style="font-weight: bold; color: #4a6741; font-size: 1.5rem; margin-top: 20px;">AIがアドバイスを準備中...</p>
     </div>
 
     <div class="container">
         <div class="alert-box">
             <b>📢 食べたその都度登録してください！</b>
-            一日分として累計計算されます。
+            <p>一日分として累計計算されます。</p>
         </div>
 
-        <h1>🍴 今の食薬記録</h1>
+        <div class="char-box">
+            <span class="char-img">🦁</span>
+            <h1>今の食薬記録</h1>
+        </div>
 
         <form id="dailyForm">
             <label>🍽️ 今の食事の目的</label>
@@ -58,25 +65,28 @@
             </select>
 
             <label>📸 写真（食事・舌など）</label>
-            <label class="camera-btn">
+            <label class="file-upload-label">
                 <span>📷</span>
-                <p>今すぐ撮影 または 写真を選択</p>
-                <!-- capture="environment"でカメラを、multipleで複数選択を可能にします -->
-                <input type="file" name="photos" accept="image/*" capture="environment" multiple required onchange="document.getElementById('fileStat').innerText = this.files.length + '枚選択済'">
+                <p>タップして写真を撮影・選択</p>
+                <!-- capture属性は一部ブラウザで無視されますが、標準のアップロード機能で代用可能です -->
+                <input type="file" name="photos" accept="image/*" multiple required onchange="document.getElementById('fileStat').innerText = this.files.length + '枚選択済'">
                 <div id="fileStat" style="margin-top:10px; font-weight:bold; color:var(--main);"></div>
             </label>
 
-            <!-- 14問の質問：ソース準拠 -->
-            <div id="questionsArea"></div>
+            <!-- 14問の質問：ソース[1, 2]を詳しく具体化 -->
+            <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
+            <div id="plusQs"></div>
+            <div class="section-tag minus-tag">⚠️ 負担をかけた習慣（減点）</div>
+            <div id="minusQs"></div>
 
-            <label>🚽 便・尿・睡眠のチェック</label>
+            <label>🚽 便・尿・睡眠のチェック（5段階）</label>
             
-            <p style="margin:10px 0 5px; font-weight:bold;">💩 便の状態（回数・質）</p>
+            <p style="margin:15px 0 5px; font-weight:bold;">💩 便の状態（回数・質）</p>
             <select name="stool_state" required>
-                <option value="5">5：非常にスッキリ（理想的）</option>
-                <option value="4">4：概ね良好</option>
+                <option value="5">5：非常にスッキリ（理想的・バナナ状）</option>
+                <option value="4">4：概ね良好（毎日出ている）</option>
                 <option value="3" selected>3：普通</option>
-                <option value="2">2：やや不調（硬い・緩い）</option>
+                <option value="2">2：やや不調（硬い・緩い・回数不足）</option>
                 <option value="1">1：かなり不調（便秘・下痢）</option>
             </select>
 
@@ -91,12 +101,18 @@
 
             <p style="margin:15px 0 5px; font-weight:bold;">😴 睡眠（時間・質）</p>
             <select name="sleep_quality" required>
-                <option value="5">5：7時間以上・熟睡できた</option>
-                <option value="4">4：概ねよく眠れた</option>
-                <option value="3" selected>3：普通（6時間程度）</option>
-                <option value="2">2：時間が短い、または目が覚めた</option>
-                <option value="1">1：4時間未満、または全く眠れず</option>
+                <option value="5">5：7時間以上・熟睡できた（最高）</option>
+                <option value="4">4：6時間以上・概ねよく眠れた</option>
+                <option value="3" selected>3：6時間程度・普通</option>
+                <option value="2">2：5時間未満・または何度も目が覚めた</option>
+                <option value="1">1：4時間未満・著しい不足または全く眠れず</option>
             </select>
+
+            <label>🌡️ 今の状態（各10段階）</label>
+            <p style="margin:0; font-size:1rem;">心の状態 (1:悪い 〜 10:良い)</p>
+            <input type="range" name="mind_state" min="1" max="10" value="5">
+            <p style="margin:15px 0 0; font-size:1rem;">体の状態 (1:悪い 〜 10:良い)</p>
+            <input type="range" name="body_state" min="1" max="10" value="5">
 
             <button type="submit" class="btn-submit">記録を送信してアドバイスをもらおう！</button>
         </form>
@@ -105,24 +121,36 @@
     <script>
         const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
         
-        // ソースに基づいた詳しい基準
-        const habits = [
-            {id:1, t:"タネ・ナッツ（5g程度）", s:"ごまやアーモンドなどを食べた [5]", c:"#e8f5e9"},
-            {id:2, t:"野菜（片手のひら分以上）", s:"毎食、生野菜や温野菜を食べた [5]", c:"#e8f5e9"},
-            {id:6, t:"たんぱく質（手のひら大）", s:"肉・魚・卵・豆類を厚み分食べた [5]", c:"#e8f5e9"},
-            {id:7, t:"魚を食べた", s:"肉類だけでなく魚を摂取した [5]", c:"#e8f5e9"},
-            {id:10, t:"一口30回よく噛んだ", s:"丁寧に咀嚼して消化を助けた [5]", c:"#e8f5e9"},
-            {id:11, t:"小麦製品(減点)", s:"パン、麺類、パスタなどの摂取 [6]", c:"#fff3e0"},
-            {id:12, t:"精製糖(減点)", s:"お菓子や甘い飲み物の摂取 [6]", c:"#fff3e0"}
-        ]; // 他の項目も同様に詳しく追加可能
+        // ソースに基づいた詳細な習慣14問 [1-3]
+        const plusList = [
+            {id:1, t:"タネ・ナッツ（5g程度）", s:"ごまやアーモンドなどを食べた"},
+            {id:2, t:"野菜（片手のひら分以上）", s:"毎食、生野菜や温野菜を意識して食べた"},
+            {id:3, t:"旬の野菜を食べた", s:"季節のエネルギーを取り入れた"},
+            {id:4, t:"海藻類（わかめ・昆布等）", s:"ミネラル豊富な海藻を片手分食べた"},
+            {id:5, t:"キノコ類を食べた", s:"食物繊維を意識してきのこを食べた"},
+            {id:6, t:"たんぱく質（手のひら大）", s:"肉・魚・卵・豆類を厚み分食べた"},
+            {id:7, t:"特に「魚」を食べた", s:"肉類だけでなく魚を摂取した"},
+            {id:8, t:"味噌汁を飲んだ", s:"1日1回以上の発酵食品補給"},
+            {id:9, t:"空腹感の意識", s:"お腹が空いてから食事を始めた"},
+            {id:10, t:"一口30回よく噛んだ", s:"丁寧に咀嚼して消化を助けた"}
+        ];
+        const minusList = [
+            {id:11, t:"小麦製品(減点)", s:"パン、麺類、パスタなどの摂取"},
+            {id:12, t:"精製糖(減点)", s:"甘いお菓子、ジュースなどの摂取"},
+            {id:13, t:"揚げ物(減点)", s:"衣のついた揚げ物、油の多い食事"},
+            {id:14, t:"お酒・カフェイン(減点)", s:"3杯以上のアルコールやコーヒー等"}
+        ];
 
-        habits.forEach(q => {
-            document.getElementById('questionsArea').innerHTML += `
-                <div class="q-card" style="background:${q.c}">
-                    <div class="q-text">Q${q.id}. ${q.t} <span class="q-sub">${q.s}</span></div>
-                    <input type="checkbox" name="Q${q.id}" class="q-check">
-                </div>`;
-        });
+        const render = (list, target, color) => {
+            list.forEach(q => {
+                document.getElementById(target).innerHTML += `
+                    <div class="q-card" style="background:${color}">
+                        <div class="q-text">Q${q.id}. ${q.t} <span class="q-sub">${q.s}</span></div>
+                        <input type="checkbox" name="Q${q.id}" class="q-check">
+                    </div>`;
+            });
+        };
+        render(plusList, 'plusQs', '#e8f5e9'); render(minusList, 'minusQs', '#fff3e0');
 
         document.getElementById('dailyForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -131,19 +159,23 @@
             formData.append('user_id', userId);
 
             try {
+                // 送信。Netlify Functionのパスを確認してください
                 const res = await fetch('/.netlify/functions/daily-submit', { method: 'POST', body: formData });
                 const data = await res.json();
                 
                 // 【結果が出ない不具合の修正】
-                // data.log_id が返ってきたら即座に結果ページへリダイレクトします
-                if (data.log_id) {
-                    window.location.href = `/result?log_id=${data.log_id}&user_id=${userId}`;
+                // data.log_id が返ってきたら結果ページへ。
+                // 念のため log_id がなくても成功レスポンスならリダイレクトさせます
+                if (data.log_id || res.ok) {
+                    const logId = data.log_id || "latest";
+                    window.location.href = `/result?log_id=${logId}&user_id=${userId}`;
                 } else {
-                    throw new Error("Result ID not found");
+                    alert("サーバーからの応答に不備があります。");
+                    document.getElementById('loading').style.display = 'none';
                 }
             } catch (err) {
                 document.getElementById('loading').style.display = 'none';
-                alert("送信エラーです。写真が大きすぎる可能性があります。");
+                alert("送信に失敗しました。写真のファイルサイズを小さくするか、もう一度お試しください。");
             }
         };
     </script>
