@@ -1,108 +1,77 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>今日の記録 | 食薬AI</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>今の記録 | 食薬AI</title>
     <style>
-        :root { --main: #4a6741; --bg: #fdfaf1; --plus: #e8f5e9; --minus: #fff3e0; --error: #e74c3c; }
-        body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 15px; color: #333; line-height: 1.5; }
+        :root { --main: #4a6741; --bg: #fdfaf1; --plus: #e8f5e9; --minus: #fff3e0; }
+        body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 15px; color: #333; }
         .container { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
-        .char-box { text-align: center; background: #f9fbf8; padding: 20px; border-radius: 30px; margin-bottom: 25px; border: 2px solid #eef2ed; }
-        .char-img { font-size: 80px; }
-        h1 { color: var(--main); text-align: center; font-size: 1.8rem; margin-bottom: 25px; }
-        label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 10px; font-size: 1.4rem; }
-        
-        /* セクション分け：老眼対応の大きな文字 */
-        .section-tag { font-size: 1.2rem; font-weight: bold; padding: 10px 20px; border-radius: 10px; margin-top: 30px; display: inline-block; }
-        .plus-tag { background: var(--main); color: white; }
-        .minus-tag { background: var(--error); color: white; }
-
-        /* 質問カードのデザイン */
-        .q-card { display: flex; align-items: center; justify-content: space-between; padding: 20px; margin: 10px 0; border-radius: 20px; border: 1px solid #eee; }
-        .plus-item { background: var(--plus); border-left: 10px solid var(--main); }
-        .minus-item { background: var(--minus); border-left: 10px solid var(--error); }
-        
-        .q-text { flex: 1; font-size: 1.3rem; font-weight: bold; color: #2c3e50; padding-right: 10px; }
-        .q-sub { font-size: 0.9rem; color: #666; display: block; font-weight: normal; }
-        .q-check { width: 45px; height: 45px; transform: scale(1.8); accent-color: var(--main); }
-        
-        .btn-submit { background: var(--main); color: white; width: 100%; padding: 28px; border-radius: 25px; border: none; font-weight: bold; font-size: 1.8rem; cursor: pointer; margin-top: 40px; box-shadow: 0 10px 25px rgba(74,103,65,0.3); }
+        .char-box { text-align: center; background: #f9fbf8; padding: 20px; border-radius: 30px; border: 2px solid #eef2ed; margin-bottom: 25px; }
+        h1 { color: var(--main); text-align: center; font-size: 1.6rem; margin-bottom: 10px; }
+        .sub-desc { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 25px; }
+        /* 質問カード：視認性重視 */
+        .q-card { display: flex; align-items: center; justify-content: space-between; padding: 18px; margin: 10px 0; border-radius: 15px; border: 1px solid #eee; }
+        .q-text { flex: 1; font-size: 1.2rem; font-weight: bold; }
+        .q-check { width: 40px; height: 40px; transform: scale(1.6); accent-color: var(--main); }
+        .btn-submit { background: var(--main); color: white; width: 100%; padding: 25px; border-radius: 20px; border: none; font-weight: bold; font-size: 1.6rem; cursor: pointer; margin-top: 30px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="char-box">
-            <span class="char-img">🦁</span>
-            <p style="font-weight:bold; color:var(--main); font-size:1.2rem;">今日の頑張りを教えてね！</p>
-        </div>
-
-        <h1>🍴 今日の食薬記録</h1>
+        <div class="char-box"><span style="font-size:60px;">🦁</span><p style="font-weight:bold; color:var(--main);">今の内容を教えてね！</p></div>
+        <h1>🍴 今の食薬記録</h1>
+        <p class="sub-desc">※一日の中で食べたものをその都度登録できます。<br>今日の合計として累計計算されます。</p>
+        
         <form id="dailyForm">
-            <!-- 写真・目的は省略せずに実装 -->
-            <label>🍽️ 食事の目的</label>
-            <select name="meal_purpose" style="width:100%; padding:20px; border-radius:15px; font-size:1.3rem; margin-bottom:20px;">
+            <!-- 目的・写真（全スペック維持） -->
+            <label style="font-weight:bold; color:var(--main);">🍽️ 食事の目的</label>
+            <select name="meal_purpose" required style="width:100%; padding:15px; border-radius:12px; font-size:1.2rem; margin-bottom:20px;">
                 <option value="health">体を整える（健康）</option>
                 <option value="enjoy">時間を楽しむ（幸福）</option>
                 <option value="social">人と過ごす（交流）</option>
             </select>
 
-            <label>📸 写真（食事・舌）</label>
-            <input type="file" name="photos" multiple required style="width:100%; font-size:1.2rem; margin-bottom:20px;">
+            <label style="font-weight:bold; color:var(--main);">📸 写真（食事・舌）</label>
+            <input type="file" name="photos" multiple required style="width:100%; margin-bottom:20px;">
 
-            <!-- 加点セクション -->
-            <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
-            <div id="plusQuestions">
-                <!-- Q1-Q10 -->
-            </div>
+            <!-- 加点・減点 Q1-Q14（完全網羅） -->
+            <div id="questionsArea"></div>
 
-            <!-- 減点セクション -->
-            <div class="section-tag minus-tag">⚠️ 体に負担をかけた習慣（減点）</div>
-            <div id="minusQuestions">
-                <!-- Q11-Q14 -->
-            </div>
-
-            <button type="submit" class="btn-submit">記録を送信して診断へ</button>
+            <button type="submit" class="btn-submit">記録を送信して診断を見る</button>
         </form>
     </div>
 
     <script>
-        // ソースのマスタに基づき、質問文を分かりやすく再構成 [1-3]
-        const plusQs = [
-            {id: 1, q: "タネ・ナッツ（5g程度）", sub: "ごまやアーモンドなどを食べた"},
-            {id: 2, q: "野菜（片手のひら分）", sub: "毎食、生野菜や温野菜を食べた"},
-            {id: 3, q: "旬の野菜を食べた", sub: "季節のエネルギーを取り入れた"},
-            {id: 4, q: "海藻類（わかめ・昆布等）", sub: "ミネラルを意識して食べた"},
-            {id: 5, q: "キノコ類を食べた", sub: "食物繊維を意識して食べた"},
-            {id: 6, q: "たんぱく質（肉・魚・卵）", sub: "片手のひら大の量を食べた"},
-            {id: 7, q: "特に「魚」を食べた", sub: "良質な脂質を取り入れた"},
-            {id: 8, q: "味噌汁を飲んだ", sub: "発酵食品を取り入れた"},
-            {id: 9, q: "空腹を感じてから食べた", sub: "胃腸を休ませてから食べた"},
-            {id: 10, q: "30回以上よく噛んで食べた", sub: "一口ずつ丁寧に味わった"}
+        const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
+        const habits = [
+            {id:1,t:"ナッツ",c:"#e8f5e9"},{id:2,t:"野菜",c:"#e8f5e9"},{id:3,t:"旬の物",c:"#e8f5e9"},{id:4,t:"海藻",c:"#e8f5e9"},
+            {id:5,t:"キノコ",c:"#e8f5e9"},{id:6,t:"たんぱく質",c:"#e8f5e9"},{id:7,t:"魚",c:"#e8f5e9"},{id:8,t:"味噌汁",c:"#e8f5e9"},
+            {id:9,t:"空腹感",c:"#e8f5e9"},{id:10,t:"よく噛んだ",c:"#e8f5e9"},{id:11,t:"小麦製品(減点)",c:"#fff3e0"},
+            {id:12,t:"甘い物(減点)",c:"#fff3e0"},{id:13,t:"揚げ物(減点)",c:"#fff3e0"},{id:14,t:"お酒/カフェイン(減点)",c:"#fff3e0"}
         ];
-        
-        const minusQs = [
-            {id: 11, q: "小麦製品を食べた", sub: "パン・麺類・パスタなど"},
-            {id: 12, q: "甘いもの・甘い飲み物", sub: "お菓子や加糖ジュースなど"},
-            {id: 13, q: "揚げ物を食べた", sub: "天ぷら・唐揚げ・ポテトなど"},
-            {id: 14, q: "お酒・カフェイン（3杯以上）", sub: "アルコールやコーヒーの飲み過ぎ"}
-        ];
+        habits.forEach(q => {
+            document.getElementById('questionsArea').innerHTML += `<div class="q-card" style="background:${q.c}"><span class="q-text">Q${q.id}. ${q.t}を摂った</span><input type="checkbox" name="Q${q.id}" class="q-check"></div>`;
+        });
 
-        const render = (target, list, cls) => {
-            const area = document.getElementById(target);
-            list.forEach(item => {
-                area.innerHTML += `
-                    <div class="q-card ${cls}">
-                        <div class="q-text">
-                            ${item.q} <span class="q-sub">${item.sub}</span>
-                        </div>
-                        <input type="checkbox" name="Q${item.id}" class="q-check">
-                    </div>
-                `;
-            });
+        document.getElementById('dailyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "診断中..."; btn.disabled = true;
+
+            const formData = new FormData(e.target);
+            formData.append('user_id', userId);
+
+            try {
+                const res = await fetch('/.netlify/functions/daily-submit', { method: 'POST', body: formData });
+                const data = await res.json();
+                // 修正ポイント：送信成功後、確実に結果ページへ遷移させる [3, 4]
+                window.location.href = `/result?log_id=${data.log_id}&user_id=${userId}`;
+            } catch (err) {
+                alert("送信エラー。通信環境を確認してください。");
+                btn.innerText = "記録を送信して診断を見る"; btn.disabled = false;
+            }
         };
-
-        render('plusQuestions', plusQs, 'plus-item');
-        render('minusQuestions', minusQs, 'minus-item');
     </script>
 </body>
 </html>
