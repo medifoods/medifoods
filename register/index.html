@@ -2,55 +2,78 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ユーザー登録 | 食薬AI</title>
+    <title>初期登録 | 食薬AI</title>
     <style>
-        body { font-family: sans-serif; background: #fdfaf1; padding: 20px; color: #333; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        h1 { color: #4a6741; text-align: center; font-size: 1.5rem; }
-        label { display: block; margin-top: 20px; font-weight: bold; color: #4a6741; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        .btn { width: 100%; background: #4a6741; color: white; padding: 15px; border: none; border-radius: 10px; margin-top: 30px; font-weight: bold; cursor: pointer; }
+        :root { --main: #4a6741; --bg: #fdfaf1; }
+        body { font-family: sans-serif; background: var(--bg); padding: 15px; color: #333; line-height: 1.5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        h1 { color: var(--main); text-align: center; font-size: 1.4rem; margin: 10px 0; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: var(--main); font-size: 0.95rem; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+        .btn { width: 100%; background: var(--main); color: white; padding: 18px; border: none; border-radius: 15px; margin-top: 30px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        .hint { font-size: 0.75rem; color: #888; margin-top: 3px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🦁 はじめての食薬登録</h1>
-        <p style="font-size: 0.9rem; color: #666;">あなたの体質に合わせたアドバイスを送るために、少しだけ教えてね。</p>
+        <div style="text-align:center; font-size: 50px;">🦁</div>
+        <h1>はじめての食薬登録</h1>
+        <p style="text-align:center; font-size:0.85rem; color:#666;">あなたの体質に合わせたアドバイスを準備します。</p>
+        
         <form id="regForm">
             <label>お名前（ニックネーム可）</label>
-            <input type="text" name="display_name" required placeholder="ライオン丸">
+            <input type="text" name="display_name" required placeholder="例：ライオンさん">
+
+            <label>グループコード / 会社名（任意）</label>
+            <input type="text" name="group_code" placeholder="例：SHOP001">
+            <p class="hint">※フランチャイズコード等がある場合は入力してください</p>
+
+            <label>性別</label>
+            <select name="gender">
+                <option value="女性">女性</option><option value="男性">男性</option><option value="その他">その他</option>
+            </select>
 
             <label>生年月日</label>
             <input type="date" name="birth_date" required>
 
-            <label>性別</label>
-            <select name="gender">
-                <option value="female">女性</option><option value="male">男性</option><option value="other">その他</option>
-            </select>
+            <label>🚀 食薬スタート日</label>
+            <input type="date" name="start_date" id="start_date_input" required>
+            <p class="hint">※今日から開始する場合はそのままでOK</p>
 
-            <label>現在の健康状態・悩み</label>
-            <input type="text" name="health_condition" placeholder="疲れやすい、むくみなど">
+            <label>今のお悩み（体調など）</label>
+            <textarea name="notes" rows="2" placeholder="例：疲れやすい、むくみ、冷え性など"></textarea>
 
-            <button type="submit" class="btn">登録してスタート！</button>
+            <button type="submit" class="btn">登録を完了してはじめる！</button>
         </form>
     </div>
 
     <script>
+        document.getElementById('start_date_input').valueAsDate = new Date();
+
         document.getElementById('regForm').onsubmit = async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "登録情報を送信中..."; btn.disabled = true;
+
             const formData = new FormData(e.target);
-            // 実際はLINEのUIDを取得しますが、まずはテスト用にIDを固定または発行
-            const userId = "U" + Math.floor(Math.random() * 100000); 
+            // 本来はLINE UID。テスト用にランダム生成
+            const userId = "U" + Math.floor(100000 + Math.random() * 900000); 
             formData.append('user_id', userId);
 
             try {
-                const res = await fetch('/.netlify/functions/user-register', { method: 'POST', body: formData });
+                const res = await fetch('/.netlify/functions/user-register', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+                
                 if (res.ok) {
-                    alert("登録が完了しました！");
-                    // 登録後はHOME画面へ（IDをURLに付与して紐付け）
+                    alert("🦁 登録が完了しました！\nホーム画面へ移動します。");
                     window.location.href = `/home/?user_id=${userId}`;
-                }
-            } catch (err) { alert("エラーが発生しました。"); }
+                } else { throw new Error(); }
+            } catch (err) {
+                alert("登録エラー。ネット環境や設定を確認してください。");
+                btn.innerText = "登録を完了してはじめる！"; btn.disabled = false;
+            }
         };
     </script>
 </body>
