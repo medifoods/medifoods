@@ -1,50 +1,114 @@
-const axios = require('axios');
+const crypto = require("crypto");
+const axios = require("axios");
+
+function getHeader(headers, name) {
+  if (!headers) return undefined;
+  const lower = name.toLowerCase();
+  return headers[lower] || headers[name] || headers[name.toUpperCase()];
+}
+
+function toRawBody(event) {
+  const body = event.body || "";
+  if (event.isBase64Encoded) {
+    return Buffer.from(body, "base64").toString("utf8");
+  }
+  return body;
+}
+
+function verifyLineSignature(rawBody, channelSecret, signature) {
+  const expected = crypto
+    .createHmac("sha256", channelSecret)
+    .update(rawBody)
+    .digest("base64");
+  return signature === expected;
+}
+
+async function replyMessage(replyToken, messages) {
+  const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error("Missing env var: LINE_CHANNEL_ACCESS_TOKEN");
+  }
+
+  await axios.post(
+    "https://api.line.me/v2/bot/message/reply",
+    { replyToken, messages },
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 10000,
+    }
+  );
+}
 
 exports.handler = async (event) => {
-    const body = JSON.parse(event.body);
-    // LINEからのイベント処理（メッセージ受信など）
-    // ソースに基づき、通知と導線のみを担当 [11]
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "Webhook received" })
-    };
-};
+  try {
+    // GETでも落とさない（疎通確認用）
+    if (event.httpMethod === "GET") {
+      return { statusCode: 200, body: "OK" };
+    }
+    if (event.httpMethod !== "POST") {
+      return { statusCode: 405, body: "Method Not Allowed" };
+    }
 
---------------------------------------------------------------------------------
-4. /netlify/functions/daily-submit.js
-「今日の記録」画面から送られたデータをAIで解析し、スプレッドシートに保存する心臓部です。
-const { OpenAI } = require('openai');
-const { GoogleSpreadsheet } = require('google-spreadsheet');
+    const channelSecret = process.env.LINE_CHANNEL_SECRET;
+    if (!channelSecret) {
+      return { statusCode: 500, body: "Missing env var: LINE_CHANNEL_SECRET" };
+    }
 
-exports.handler = async (event) => {
-    const data = JSON.parse(event.body);
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    
-    // 1. 食事写真解析（ソースのJSON Schemaを使用）[14, 16]
-    const aiResponse = await openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
-        messages: [{ role: "system", content: process.env.PROMPT_MEAL_IMAGE }, { role: "user", content: data.image_url }]
-    });
+    const rawBody = toRawBody(event);
+    const signature = getHeader(event.headers, "x-line-signature");
+    if (!signature) {
+      return { statusCode: 400, body: "Missing header: x-line-signature" };
+    }
 
-    // 2. ガードレールの適用（禁止食材の混入チェック、合算栄養の計算）[17, 18]
-    // 3. スプレッドシート(DailyLog/DailyAnswers)への追記 [15, 19]
-    
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ status: "ok", advice: "AI解析結果を返却" })
-    };
-};
+    if (!verifyLineSignature(rawBody, channelSecret, signature)) {
+      return { statusCode: 401, body: "Invalid signature" };
+    }
 
---------------------------------------------------------------------------------
-5. /netlify/functions/weekly-generate.js
-週末にAggシートの数値を読み取り、翌週の「献立・買い物・レシピ」を生成します。
-exports.handler = async (event) => {
-    // 1. Aggシートから1週間の平均スコア（基礎・健康比率）を取得 [9, 23]
-    // 2. 週次問診（A-E, F-J）の最大値判定キーを取得 [24]
-    // 3. 禁止食材（小麦、砂糖、加工肉等）を排除したプロンプトでAI呼び出し [21, 25]
-    // 4. WeeklyLogに保存 [26]
-    return {
-        statusCode: 200,
-        body: JSON.stringify({ message: "Weekly plan generated" })
-    };
+    const payload = rawBody ? JSON.parse(rawBody) : {};
+    const events = Array.isArray(payload.events) ? payload.events : [];
+
+    // LINEの検証リクエスト等で events が空でもOK
+    if (events.length === 0) {
+      return { statusCode: 200, body: "OK" };
+    }
+
+    const recordUrl = process.env.RECORD_URL || ""; // 例: https://あなたのサイト/record
+    const welcomeText =
+      recordUrl
+        ? `記録はこちらから送れます：\n${recordUrl}\n\n（例）「今日の記録」→ 食事写真・舌・目的を送信`
+        : `Webhookは受け取りました。RECORD_URLを環境変数に設定すると導線を案内できます。`;
+
+    await Promise.all(
+      events.map(async (ev) => {
+        if (!ev) return;
+
+        // 友だち追加時
+        if (ev.type === "follow" && ev.replyToken) {
+          await replyMessage(ev.replyToken, [{ type: "text", text: welcomeText }]);
+          return;
+        }
+
+        // テキストメッセージ時（通知＋導線）
+        if (ev.type === "message" && ev.message && ev.message.type === "text" && ev.replyToken) {
+          const text = (ev.message.text || "").trim();
+
+          // 反応を返したい文言だけ軽く分岐（必要なら後で増やす）
+          const response =
+            /記録|きろく|today|今日/i.test(text)
+              ? welcomeText
+              : welcomeText;
+
+          await replyMessage(ev.replyToken, [{ type: "text", text: response }]);
+        }
+      })
+    );
+
+    return { statusCode: 200, body: "OK" };
+  } catch (err) {
+    console.error("line-webhook error:", err);
+    return { statusCode: 500, body: "Internal Server Error" };
+  }
 };
