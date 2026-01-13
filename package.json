@@ -1,12 +1,9 @@
 {
-  "name": "syokuyaku-ai-system",
-  "version": "1.0.0",
+  "name": "netlify-functions",
   "private": true,
   "dependencies": {
-    "@netlify/functions": "^2.0.0",
     "axios": "^1.6.0",
-    "googleapis": "^140.0.0",
-    "google-spreadsheet": "^4.1.1",
-    "openai": "^4.20.0"
+    "google-spreadsheet": "^3.3.0",
+    "openai": "^4.0.0"
   }
 }
