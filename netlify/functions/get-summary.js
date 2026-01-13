@@ -15,13 +15,13 @@ exports.handler = async (event) => {
         // 集計用の 'Agg' シートからデータを読み込む
         const aggSheet = doc.sheetsByTitle['Agg'];
         const rows = await aggSheet.getRows();
+        // user_id列とURLのIDを照合
         const userAgg = rows.find(r => r.user_id === userId);
 
         if (!userAgg) {
             throw new Error("User Not Found in Agg sheet");
         }
 
-        // フロントエンド（画面）に返すデータ。ここが文字化けやコード漏れを防ぐポイントです
         return {
             statusCode: 200,
             headers: {
@@ -42,4 +42,5 @@ exports.handler = async (event) => {
             body: JSON.stringify({ error: error.message })
         };
     }
+};
 };
