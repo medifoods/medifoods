@@ -1,45 +1,77 @@
-const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { GoogleSpreadsheet } = require("google-spreadsheet");
 
 exports.handler = async (event) => {
-    // URLからユーザーIDを取得。無ければ U12345 を使用
-    const userId = event.queryStringParameters.user_id || "U12345";
-    
-    try {
-        const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
-        await doc.useServiceAccountAuth({
-            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/gm, '\n'),
-        });
-        await doc.loadInfo();
+  // CORS
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      },
+      body: "",
+    };
+  }
 
-        // 集計用の 'Agg' シートからデータを読み込む
-        const aggSheet = doc.sheetsByTitle['Agg'];
-        const rows = await aggSheet.getRows();
-        // user_id列とURLのIDを照合
-        const userAgg = rows.find(r => r.user_id === userId);
+  const userId = event.queryStringParameters?.user_id || "U12345";
 
-        if (!userAgg) {
-            throw new Error("User Not Found in Agg sheet");
-        }
+  try {
+    if (!process.env.SPREADSHEET_ID) throw new Error("Missing env var: SPREADSHEET_ID");
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) throw new Error("Missing env var: GOOGLE_SERVICE_ACCOUNT_JSON");
 
-        return {
-            statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: JSON.stringify({
-                week_no: userAgg.current_week_no || 1,
-                weekly_learning_text: userAgg.weekly_learning_text || "今週も頑張りましょう！",
-                char_status_logic: userAgg.char_status_logic || "NORMAL"
-            })
-        };
-    } catch (error) {
-        console.error("API Error:", error);
-        return {
-            statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({ error: error.message })
-        };
+    const svc = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+
+    if (!svc.client_email) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON missing: client_email");
+    if (!svc.private_key) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON missing: private_key");
+
+    const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
+
+    await doc.useServiceAccountAuth({
+      client_email: svc.client_email,
+      private_key: String(svc.private_key).replace(/\\n/g, "\n"),
+    });
+
+    await doc.loadInfo();
+
+    const aggSheet = doc.sheetsByTitle["Agg"];
+    if (!aggSheet) throw new Error("Agg sheet not found");
+
+    const rows = await aggSheet.getRows();
+    const userAgg = rows.find((r) => String(r.user_id || "") === String(userId));
+
+    if (!userAgg) {
+      return {
+        statusCode: 404,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify({ error: "User Not Found in Agg sheet", user_id: userId }),
+      };
     }
+
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({
+        week_no: userAgg.current_week_no || 1,
+        weekly_learning_text: userAgg.weekly_learning_text || "今週も頑張りましょう！",
+        char_status_logic: userAgg.char_status_logic || "NORMAL",
+      }),
+    };
+  } catch (error) {
+    console.error("API Error:", error);
+    return {
+      statusCode: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({ error: error.message }),
+    };
+  }
 };
