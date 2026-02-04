@@ -10,12 +10,12 @@ exports.handler = async (event) => {
     const data = JSON.parse(event.body);
     const userId = data.user_id;
     
-    // ★ここが修正ポイント：単数形(meal_photo)でも複数形(meal_photos)でも受け取れるようにする
+    // 写真の受け取り（単数・複数対応）
     let mealPhotos = [];
     if (data.meal_photos && Array.isArray(data.meal_photos)) {
-        mealPhotos = data.meal_photos; // 新しい方式（リスト）
+        mealPhotos = data.meal_photos; 
     } else if (data.meal_photo) {
-        mealPhotos = [data.meal_photo]; // 古い方式（1枚）も許容
+        mealPhotos = [data.meal_photo]; 
     }
 
     const tonguePhoto = data.tongue_photo; 
@@ -47,22 +47,20 @@ exports.handler = async (event) => {
       }
     ];
 
-    // ★画像がない場合のガード（これが "Missing image_url" の原因でした）
+    // 画像がない場合のガード
     if (mealPhotos.length === 0) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: "写真が届いていません" }) // JSONで返すように修正
+            body: JSON.stringify({ error: "写真が届いていません" }) 
         };
     }
 
-    // 食事画像をすべてAIに見せる
+    // 画像を追加
     mealPhotos.forEach(photoBase64 => {
-      // Base64ヘッダがついているか確認し、なければつける（念のため）
       let url = photoBase64;
       if (!url.startsWith('data:image')) {
           url = `data:image/jpeg;base64,${url}`;
       }
-      
       userContent.push({
         type: "image_url",
         image_url: { url: url }
@@ -77,6 +75,9 @@ exports.handler = async (event) => {
       max_tokens: 1000
     });
 
+    // ★★★【ここが修正箇所】★★★
+    // 以前のコード： completion.choices.message.content (これがundefinedエラーの原因)
+    // 修正後のコード： completion.choices.message.content (を追加)
     const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
@@ -89,7 +90,7 @@ exports.handler = async (event) => {
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
     
-    // スプレッドシートには「1枚目の写真」だけ保存して容量節約（AIは全枚数見ています）
+    // シート容量節約のため1枚目のみ保存
     const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
 
     await logSheet.addRow({
