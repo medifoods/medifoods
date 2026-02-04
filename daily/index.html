@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>今日の記録 - 食薬AI</title>
-    <!-- ▼▼ フリーズ防止のための専門ライブラリを読み込み ▼▼ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/compressorjs/1.2.1/compressor.min.js"></script>
-    
     <style>
         body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -143,37 +140,45 @@
         });
     };
 
-    // ▼ 【安全対策入り】専門ライブラリを使った圧縮処理
-    const compressImage = (file) => {
-        return new Promise((resolve, reject) => {
-            // 安全対策：ファイルがない場合はエラーを返さず終了
-            if (!file) {
-                console.error("ファイルが空です");
-                resolve(null); 
-                return;
-            }
+    // ▼ 【重要】スマホ標準機能での軽量化ロジック（外部ツール不使用）
+    const compressImage = async (file) => {
+        if (!file) return null; // ファイルがない場合はスルー
 
-            // Compressor.jsを使用
-            new Compressor(file, {
-                quality: 0.6,      // 画質60%
-                maxWidth: 600,     // 幅600pxまで縮小
-                maxHeight: 600,
-                mimeType: 'image/jpeg',
-                success(result) {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(result);
-                    reader.onloadend = () => {
-                        resolve(reader.result);
-                    };
-                },
-                error(err) {
-                    console.error("圧縮エラー:", err.message);
-                    // エラー時は圧縮せずに元のファイルを試す（保険）
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onloadend = () => resolve(reader.result);
-                },
-            });
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            // メモリを節約する読み込み方
+            const url = URL.createObjectURL(file);
+            
+            img.onload = () => {
+                // 読み込んだらURLを解放（メモリ掃除）
+                URL.revokeObjectURL(url);
+                
+                const canvas = document.createElement('canvas');
+                // 幅を600pxに制限（これで軽くなります）
+                const maxWidth = 600;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round(height * (maxWidth / width));
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // JPEG形式、画質0.7で圧縮
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            
+            img.onerror = (e) => {
+                URL.revokeObjectURL(url);
+                reject(new Error("画像の読み込みに失敗しました"));
+            };
+
+            img.src = url;
         });
     };
 
@@ -204,26 +209,27 @@
             const compressedMealList = [];
             const files = Array.from(mealPhotoInput.files);
 
-            // 1枚ずつ処理
+            // 1枚ずつ順番に処理（フリーズ回避）
             for (let i = 0; i < files.length; i++) {
+                if (!files[i]) continue;
+
                 loadingText.innerHTML = `写真を軽くしています...<br>（${i + 1} / ${files.length} 枚目）`;
+                // 画面を更新する時間を作る（フリーズ防止の休憩）
                 await new Promise(r => setTimeout(r, 100)); 
                 
-                if (files[i]) { // ファイルがあるか確認
-                    const compressed = await compressImage(files[i]);
-                    if (compressed) {
-                        compressedMealList.push(compressed);
-                    }
+                const compressed = await compressImage(files[i]);
+                if (compressed) {
+                    compressedMealList.push(compressed);
                 }
             }
             
             // 舌写真
             let compressedTongue = null;
             const tonguePhotoInput = document.getElementById('tongue-photo');
-            if (tonguePhotoInput.files.length > 0 && tonguePhotoInput.files) {
+            if (tonguePhotoInput.files.length > 0) {
                 loadingText.innerText = "舌の写真を処理しています...";
                 await new Promise(r => setTimeout(r, 100));
-                compressedTongue = await compressImage(tonguePhotoInput.files);
+                compressedTongue = await compressImage(tonguePhotoInput.files); // を追加して安全に
             }
 
             // 問診データ収集
@@ -263,12 +269,13 @@
                 alert("記録しました！\n" + (result.message_ui || "本日もお疲れ様でした🍵"));
                 window.location.href = `/home/?user_id=${userId}`;
             } else {
-                throw new Error(result.error || "送信エラー");
+                throw new Error(result.error || "送信に失敗しました");
             }
 
         } catch (error) {
             console.error(error);
-            alert("エラーが発生しました: " + error.message);
+            // エラー内容を確実に表示する
+            alert("エラーが発生しました: " + (error.message || error));
         } finally {
             submitBtn.disabled = false;
             loadingText.style.display = 'none';
