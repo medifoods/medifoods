@@ -2,7 +2,6 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { OpenAI } = require('openai');
 
 exports.handler = async (event) => {
-  // 許可されていないメソッド（GETなど）は弾く
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -11,81 +10,73 @@ exports.handler = async (event) => {
     const data = JSON.parse(event.body);
     const userId = data.user_id;
     
-    // 写真データの受け取り（単数形・複数形の両方に対応）
+    // 写真データの準備
     let mealPhotos = [];
     if (data.meal_photos && Array.isArray(data.meal_photos)) {
         mealPhotos = data.meal_photos; 
     } else if (data.meal_photo) {
         mealPhotos = [data.meal_photo]; 
     }
-
     const tonguePhoto = data.tongue_photo; 
 
     // --- 1. OpenAIで解析 ---
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // AIへのメッセージ構築（プロンプト）
+    // AIへのメッセージ（少し制限を緩めて優しくしました）
     const userContent = [
       {
         type: "text",
         text: `
-          あなたは臨床分子栄養療法と食薬のプロです。食事画像から栄養とアドバイスをJSONで返してください。
-          【ルール】
-          - 食品が写っていない場合は "食べ物ですか": false を返す。
-          - 糖質80g超は「少し多め」と判断し次回控える提案をする。
-          - たんぱく質15g未満は肉魚卵の追加を提案。
-          - 小麦、牛乳、砂糖、加工肉、揚げ物は推奨しない。
-          - 文中に「」は使わず、否定語を避け、親切なトーンで。
-          - 最後に必ず「普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう」で締める。
+          あなたは栄養療法のプロです。食事画像を見てJSON形式で返答してください。
+          JSONの前後に余計な文章はつけないでください。
           
-          出力JSON形式:
+          出力形式:
           {
             "食べ物ですか": true,
-            "メニュー": [{"名前": "", "材料": [], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
-            "健康アドバイス": "..."
+            "メニュー": [{"名前": "料理名", "材料": ["材料"], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
+            "健康アドバイス": "150文字以内の親切なアドバイス"
           }
         `
       }
     ];
 
-    // 画像がない場合のガード（空配列チェック）
     if (mealPhotos.length === 0) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: "写真が届いていません" }) 
-        };
+        return { statusCode: 400, body: JSON.stringify({ error: "写真が届いていません" }) };
     }
 
-    // 画像データをAIへのメッセージに追加
     mealPhotos.forEach(photoBase64 => {
       let url = photoBase64;
-      // Base64ヘッダがない場合は補完
       if (!url.startsWith('data:image')) {
           url = `data:image/jpeg;base64,${url}`;
       }
-      userContent.push({
-        type: "image_url",
-        image_url: { url: url }
-      });
+      userContent.push({ type: "image_url", image_url: { url: url } });
     });
 
-    // AI解析実行
+    // ★変更点：モデルをminiにし、JSON強制モードを外してエラー回避
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", 
+      model: "gpt-4o-mini", 
       messages: [{ role: "user", content: userContent }],
-      response_format: { type: "json_object" },
       max_tokens: 1000
     });
 
-    // ★★★【ここがエラー修正の最重要ポイント】★★★
-    // 以前のコード（エラー原因）： completion.choices.message.content
-    // 今回の修正コード： completion.choices.message.content
-    // さらに、万が一データが空だった場合のガードを追加
+    // ★診断用：AIの返事が空なら、中身をそのままエラーとして表示する
     if (!completion.choices || !completion.choices || !completion.choices.message) {
-        throw new Error("AIからの応答が空でした。もう一度お試しください。");
+        console.error("AI Response Error:", JSON.stringify(completion));
+        throw new Error("AIからの返答が空です。詳細: " + JSON.stringify(completion));
     }
 
-    const aiResult = JSON.parse(completion.choices.message.content);
+    let content = completion.choices.message.content;
+    
+    // JSON以外の文字（```json 等）が含まれていたら削除して整える
+    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    let aiResult;
+    try {
+        aiResult = JSON.parse(content);
+    } catch (e) {
+        console.error("JSON Parse Error. Content:", content);
+        throw new Error("AIの返答を読み取れませんでした。内容: " + content.substring(0, 50) + "...");
+    }
 
     // --- 2. スプレッドシートへ保存 ---
     const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -96,8 +87,6 @@ exports.handler = async (event) => {
     await doc.loadInfo();
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
-    
-    // シート容量節約のため写真は1枚目のみ保存
     const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
 
     await logSheet.addRow({
@@ -112,7 +101,7 @@ exports.handler = async (event) => {
       created_at: new Date().toISOString()
     });
 
-    // --- 3. 結果をフロントエンドへ返す ---
+    // --- 3. 結果を返す ---
     if (aiResult.食べ物ですか === false) {
       return {
         statusCode: 200,
@@ -134,7 +123,7 @@ exports.handler = async (event) => {
     console.error("Error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "システムエラーが発生しました: " + error.message })
+      body: JSON.stringify({ error: "診断エラー: " + error.message })
     };
   }
 };
