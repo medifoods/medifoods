@@ -76,8 +76,7 @@ exports.handler = async (event) => {
     });
 
     // ★★★【ここが修正箇所】★★★
-    // 以前のコード： completion.choices.message.content (これがundefinedエラーの原因)
-    // 修正後のコード： completion.choices.message.content (を追加)
+    //  を追加しました。これで「最初の回答」を確実に取得します。
     const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
