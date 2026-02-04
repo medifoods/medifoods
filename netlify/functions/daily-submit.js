@@ -2,6 +2,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { OpenAI } = require('openai');
 
 exports.handler = async (event) => {
+  // 許可されていないメソッド（GETなど）は弾く
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -10,12 +11,12 @@ exports.handler = async (event) => {
     const data = JSON.parse(event.body);
     const userId = data.user_id;
     
-    // 写真の受け取り（単数・複数対応）
+    // 写真データの受け取り（単数形・複数形の両方に対応）
     let mealPhotos = [];
     if (data.meal_photos && Array.isArray(data.meal_photos)) {
-        mealPhotos = data.meal_photos; 
+        mealPhotos = data.meal_photos; // 新しい方式（リスト）
     } else if (data.meal_photo) {
-        mealPhotos = [data.meal_photo]; 
+        mealPhotos = [data.meal_photo]; // 古い方式（1枚）
     }
 
     const tonguePhoto = data.tongue_photo; 
@@ -23,7 +24,7 @@ exports.handler = async (event) => {
     // --- 1. OpenAIで解析 ---
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // AIへのメッセージ構築
+    // AIへのメッセージ構築（プロンプト）
     const userContent = [
       {
         type: "text",
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
       }
     ];
 
-    // 画像がない場合のガード
+    // 画像がない場合のガード（空配列チェック）
     if (mealPhotos.length === 0) {
         return {
             statusCode: 400,
@@ -55,9 +56,10 @@ exports.handler = async (event) => {
         };
     }
 
-    // 画像を追加
+    // 画像データをAIへのメッセージに追加
     mealPhotos.forEach(photoBase64 => {
       let url = photoBase64;
+      // Base64ヘッダがない場合は補完
       if (!url.startsWith('data:image')) {
           url = `data:image/jpeg;base64,${url}`;
       }
@@ -90,7 +92,7 @@ exports.handler = async (event) => {
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
     
-    // シート容量節約のため1枚目のみ保存
+    // シート容量節約のため写真は1枚目のみ保存（運用ルール）
     const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
 
     await logSheet.addRow({
@@ -105,7 +107,8 @@ exports.handler = async (event) => {
       created_at: new Date().toISOString()
     });
 
-    // --- 3. 結果を返す ---
+    // --- 3. 結果をフロントエンドへ返す ---
+    // 食べ物ではないと判定された場合
     if (aiResult.食べ物ですか === false) {
       return {
         statusCode: 200,
@@ -115,6 +118,7 @@ exports.handler = async (event) => {
       };
     }
 
+    // 正常な解析結果を返す
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -125,6 +129,7 @@ exports.handler = async (event) => {
 
   } catch (error) {
     console.error("Error:", error);
+    // エラー内容をJSONで返す（画面クラッシュ防止）
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "システムエラーが発生しました: " + error.message })
