@@ -14,9 +14,9 @@ exports.handler = async (event) => {
     // 写真データの受け取り（単数形・複数形の両方に対応）
     let mealPhotos = [];
     if (data.meal_photos && Array.isArray(data.meal_photos)) {
-        mealPhotos = data.meal_photos; // 新しい方式（リスト）
+        mealPhotos = data.meal_photos; 
     } else if (data.meal_photo) {
-        mealPhotos = [data.meal_photo]; // 古い方式（1枚）
+        mealPhotos = [data.meal_photo]; 
     }
 
     const tonguePhoto = data.tongue_photo; 
@@ -78,8 +78,9 @@ exports.handler = async (event) => {
     });
 
     // ★★★【ここが最重要修正点】★★★
-    // 以前のミス： completion.choices.message.content
-    // 正しい記述： completion.choices.message.content （を追加しました）
+    // AIからの返事は「リスト（choices）」で届くため、（1番目）を指定しないとエラーになります。
+    // 以前のエラー原因： completion.choices.message.content
+    // 今回の修正コード： completion.choices.message.content
     const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
