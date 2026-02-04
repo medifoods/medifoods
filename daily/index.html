@@ -114,6 +114,33 @@
     </div>
 
     <script>
+        const compressImage = async (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // 最大サイズを800pxに制限（AI解析にはこれで十分です）
+                const maxWidth = 800;
+                const scaleSize = maxWidth / img.width;
+                canvas.width = maxWidth;
+                canvas.height = img.height * scaleSize;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // JPEG形式で圧縮率0.7（画質を少し落として容量削減）
+                // これで数MBの写真が100KB〜300KBになります
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = (error) => reject(error);
+        };
+    });
+};
+        
         const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
         const plusList = [
             {id:1, t:"タネ・ナッツ（5g程度）", s:"ごまやアーモンドなどを食べた"},
