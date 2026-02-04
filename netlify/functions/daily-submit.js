@@ -77,9 +77,10 @@ exports.handler = async (event) => {
       max_tokens: 1000
     });
 
-    // ★★★【ここが最重要修正点】★★★
+    // ★★★【ここが修正箇所】★★★
     // 以前のミス： completion.choices.message.content
-    // 正しい記述： completion.choices.message.content （を追加しました）
+    // 正しい記述： completion.choices.message.content
+    // ※  があることで「AIの回答リストの1番目」を確実に取り出します
     const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
