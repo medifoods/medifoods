@@ -229,7 +229,7 @@
                 loadingText.innerText = "舌の写真を処理しています...";
                 await new Promise(r => setTimeout(r, 100));
                 
-                // ★【修正箇所】以前は files を渡していましたが、files（1枚目）を渡すよう修正しました
+                // ★★★【ここが重要】をつけて1枚目を渡します★★★
                 compressedTongue = await compressImage(tonguePhotoInput.files); 
             }
 
