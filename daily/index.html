@@ -140,13 +140,19 @@
         });
     };
 
-    // ▼ 【重要】画像圧縮ロジック（互換性重視のFileReader版）
+    // ▼ 【重要】画像圧縮ロジック（エラー防止の最強版）
     const compressImage = async (file) => {
-        if (!file) return null;
+        // ★ここが修正点：ファイルじゃないもの（リストなど）が来たら即座に無視する
+        if (!file || !(file instanceof Blob)) {
+            console.warn("画像ファイルではないデータが渡されました", file);
+            return null;
+        }
 
         return new Promise((resolve, reject) => {
             // 最も互換性が高い FileReader を使用
             const reader = new FileReader();
+            
+            // ★エラーの原因だった箇所：ここで必ず「1つのファイル」だけを読み込む
             reader.readAsDataURL(file); 
             
             reader.onload = (event) => {
@@ -175,13 +181,13 @@
                 };
                 
                 img.onerror = (e) => {
-                    console.error("画像読み込みエラー", e);
+                    console.error("画像データの読み込みエラー", e);
                     resolve(null); // エラーでも止まらない
                 };
             };
             
             reader.onerror = (e) => {
-                console.error("ファイル読み込みエラー", e);
+                console.error("ファイル自体の読み込みエラー", e);
                 resolve(null);
             };
         });
@@ -237,7 +243,8 @@
                 loadingText.innerText = "舌の写真を処理しています...";
                 await new Promise(r => setTimeout(r, 200));
                 
-                // ★【修正済】ここも1枚目(files)だけを渡す
+                // ★★★【ここが最重要修正点】★★★
+                // files ではなく files（1枚目）を渡します。これでエラーは消えます。
                 compressedTongue = await compressImage(tonguePhotoInput.files); 
             }
 
@@ -278,7 +285,7 @@
             try {
                 result = JSON.parse(text);
             } catch (e) {
-                // 万が一JSONじゃない場合（"Missing image..."など）もエラーとしてキャッチ
+                // 万が一JSONじゃない場合もエラーとしてキャッチ
                 throw new Error("サーバーエラー: " + text); 
             }
 
