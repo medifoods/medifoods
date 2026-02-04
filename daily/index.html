@@ -1,193 +1,245 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>今の記録 | 食薬AI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日の記録 - 食薬AI</title>
     <style>
-        :root { --main: #4a6741; --bg: #fdfaf1; --plus: #e8f5e9; --minus: #fff3e0; --error: #e74c3c; }
-        body { font-family: "Hiragino Sans", sans-serif; background: var(--bg); padding: 15px; color: #333; line-height: 1.6; }
-        .container { max-width: 550px; margin: auto; background: white; padding: 25px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { color: #2e8b57; text-align: center; margin-bottom: 20px; }
+        h3 { border-bottom: 2px solid #2e8b57; padding-bottom: 5px; margin-top: 30px; font-size: 16px; color: #444; }
         
-        /* 累計メッセージの強調 */
-        .alert-box { background: #fff5f5; border: 3px solid var(--error); padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 25px; }
-        .alert-box b { color: var(--error); font-size: 1.4rem; display: block; margin-bottom: 8px; }
-        .alert-box p { margin: 0; font-weight: bold; color: #333; font-size: 1.1rem; }
-
-        .char-box { text-align: center; background: #f9fbf8; padding: 15px; border-radius: 30px; border: 2px solid #eef2ed; margin-bottom: 20px; }
-        .char-img { font-size: 70px; }
-        h1 { color: var(--main); text-align: center; font-size: 1.6rem; margin: 10px 0; }
-
-        label { font-weight: bold; color: var(--main); display: block; margin: 25px 0 8px; font-size: 1.3rem; }
-        select, input[type="range"] { width: 100%; padding: 20px; border-radius: 15px; border: 2px solid #eee; font-size: 1.2rem; margin-bottom: 12px; box-sizing: border-box; background: #fff; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        .radio-group { display: flex; gap: 15px; margin-bottom: 10px; }
+        input[type="file"], select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; }
         
-        /* 写真選択（アップロードのみ） */
-        .file-upload-label { background: #f0f4ee; border: 3px dashed var(--main); padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; display: block; }
-        .file-upload-label span { font-size: 2.5rem; display: block; }
-        .file-upload-label p { margin: 10px 0 0; font-weight: bold; color: var(--main); font-size: 1.2rem; }
-        input[type="file"] { display: none; }
+        /* 問診エリアのデザイン */
+        .section-tag { background: #eee; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 20px; font-size: 14px; font-weight: bold; }
+        .plus-tag { background: #e8f5e9; color: #2e8b57; }
+        .minus-tag { background: #ffebee; color: #c62828; }
+        .check-item { margin: 8px 0; padding: 8px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+        .check-item label { margin: 0; font-weight: normal; cursor: pointer; flex-grow: 1; }
+        .check-item input { width: auto; margin-right: 10px; transform: scale(1.2); }
 
-        /* 14問の質問：詳しく具体化 */
-        .section-tag { font-size: 1.1rem; font-weight: bold; padding: 8px 15px; border-radius: 8px; margin-top: 35px; display: inline-block; color: white; }
-        .plus-tag { background: var(--main); }
-        .minus-tag { background: var(--error); }
-        .q-card { padding: 18px; margin: 10px 0; border-radius: 20px; border: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .q-text { flex: 1; font-size: 1.2rem; font-weight: bold; }
-        .q-sub { font-size: 0.95rem; color: #666; font-weight: normal; display: block; margin-top: 3px; }
-        .q-check { width: 45px; height: 45px; transform: scale(1.8); accent-color: var(--main); }
-
-        .btn-submit { background: var(--main); color: white; width: 100%; padding: 30px; border-radius: 25px; border: none; font-weight: bold; font-size: 1.8rem; cursor: pointer; margin-top: 50px; box-shadow: 0 10px 25px rgba(74,103,65,0.3); }
-        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        /* スライダー */
+        input[type=range] { width: 100%; margin: 10px 0; }
+        
+        .btn { display: block; width: 100%; padding: 15px; background-color: #2e8b57; color: white; text-align: center; border-radius: 25px; font-weight: bold; border: none; cursor: pointer; font-size: 16px; margin-top: 30px; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #loading { display: none; text-align: center; color: #666; margin-top: 10px; font-size: 14px; }
+        .note { font-size: 12px; color: #888; margin-top: 5px; }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading-overlay">
-        <div style="font-size: 80px;">🦁</div>
-        <p style="font-weight: bold; color: #4a6741; font-size: 1.6rem; margin-top: 20px;">AIがアドバイスを準備中...</p>
-        <p>※10秒以上かかる場合があります</p>
+
+<div class="container">
+    <h2>今日の食薬記録</h2>
+
+    <!-- 1. 基本情報 -->
+    <h3>🍽️ 食事の基本</h3>
+    <label>今日の食事の目的は？</label>
+    <div class="radio-group">
+        <label><input type="radio" name="meal_purpose" value="health" checked> 健康</label>
+        <label><input type="radio" name="meal_purpose" value="enjoy"> 楽しむ</label>
+        <label><input type="radio" name="meal_purpose" value="social"> 交流</label>
     </div>
 
-    <div class="container">
-        <div class="alert-box">
-            <b>📢 食べたその都度登録してください！</b>
-            <p>一日分として累計されます。</p>
-        </div>
+    <label>食事の写真（必須）</label>
+    <input type="file" id="meal-photo" accept="image/*">
+    <div class="note">※自動で圧縮して送信します</div>
 
-        <div class="char-box"><span class="char-img">🦁</span><h1>今の食薬記録</h1></div>
+    <label>舌の写真（任意）</label>
+    <input type="file" id="tongue-photo" accept="image/*">
 
-        <form id="dailyForm">
-            <label>🍽️ 今の食事の目的</label>
-            <select name="meal_purpose" required>
-                <option value="health">体を整える（健康）</option>
-                <option value="enjoy">時間を楽しむ（幸福）</option>
-                <option value="social">人と過ごす（交流）</option>
-            </select>
+    <!-- 2. 食薬習慣チェック（加点・減点） -->
+    <h3>📝 食薬習慣チェック</h3>
+    <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
+    <div id="plusQs"></div> <!-- ここにJSで質問が入ります -->
 
-            <label>📸 写真（食事・舌など）</label>
-            <label class="file-upload-label">
-                <span>📁</span>
-                <p>写真を選択する</p>
-                <input type="file" name="photos" accept="image/*" multiple required onchange="document.getElementById('fileStat').innerText = this.files.length + '枚選択済み'">
-                <div id="fileStat" style="margin-top:10px; font-weight:bold; color:var(--main);"></div>
-            </label>
+    <div class="section-tag minus-tag">⚠️ 負担をかけた習慣（減点）</div>
+    <div id="minusQs"></div> <!-- ここにJSで質問が入ります -->
 
-            <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
-            <div id="plusQs"></div>
-            <div class="section-tag minus-tag">⚠️ 負担をかけた習慣（減点）</div>
-            <div id="minusQs"></div>
+    <!-- 3. 体調チェック -->
+    <h3>🚽 体調チェック</h3>
+    <p style="margin:15px 0 5px; font-weight:bold;">💩 便の状態</p>
+    <select id="stool_state">
+        <option value="5">5：非常にスッキリ（理想的・バナナ状）</option>
+        <option value="4">4：概ね良好（毎日出ている）</option>
+        <option value="3" selected>3：普通</option>
+        <option value="2">2：やや不調（硬い・緩い・回数不足）</option>
+        <option value="1">1：かなり不調（便秘・下痢）</option>
+    </select>
 
-            <label>🚽 便・尿・睡眠のチェック（5段階）</label>
-            <p style="margin:15px 0 5px; font-weight:bold;">💩 便の状態（回数・質）</p>
-            <select name="stool_state" required>
-                <option value="5">5：非常にスッキリ（理想的・バナナ状）</option>
-                <option value="4">4：概ね良好（毎日出ている）</option>
-                <option value="3" selected>3：普通</option>
-                <option value="2">2：やや不調（硬い・緩い・回数不足）</option>
-                <option value="1">1：かなり不調（便秘・下痢）</option>
-            </select>
+    <p style="margin:15px 0 5px; font-weight:bold;">💧 尿の状態</p>
+    <select id="urine_state">
+        <option value="5">5：透き通った淡黄色（水分充実）</option>
+        <option value="4">4：透き通った黄色（概ね良好）</option>
+        <option value="3" selected>3：色が濃い・量が少ない（不足気味）</option>
+        <option value="2">2：濃い黄色・回数に異常</option>
+        <option value="1">1：濁り・痛みがある</option>
+    </select>
 
-            <p style="margin:15px 0 5px; font-weight:bold;">💧 尿の状態（回数・量・色）</p>
-            <select name="urine_state" required>
-                <option value="5">5：透き通った淡黄色（水分充実）、残尿感なし</option>
-                <option value="4">4：透き通った黄色（概ね良好）</option>
-                <option value="3" selected>3：少し黄色が濃く量少ない（水分不足ぎみ）</option>
-                <option value="2">2：濃い黄色・回数が多い/少ない</option>
-                <option value="1">1：濁り、におい、痛みがある</option>
-            </select>
+    <p style="margin:15px 0 5px; font-weight:bold;">😴 睡眠の質</p>
+    <select id="sleep_quality">
+        <option value="5">5：7時間以上・熟睡できた（最高）</option>
+        <option value="4">4：6時間以上・概ねよく眠れた</option>
+        <option value="3" selected>3：6時間程度・普通</option>
+        <option value="2">2：5時間未満・何度も目が覚めた</option>
+        <option value="1">1：4時間未満・全く眠れず</option>
+    </select>
 
-            <p style="margin:15px 0 5px; font-weight:bold;">😴 睡眠（時間・質）</p>
-            <select name="sleep_quality" required>
-                <option value="5">5：7時間以上・熟睡できた（最高）</option>
-                <option value="4">4：6時間以上・概ねよく眠れた</option>
-                <option value="3" selected>3：6時間程度・普通</option>
-                <option value="2">2：5時間未満・または何度も目が覚めた</option>
-                <option value="1">1：4時間未満・著しい不足または全く眠れず</option>
-            </select>
+    <label>🌡️ 今の状態（1〜10）</label>
+    <p style="margin:0; font-size:0.9rem;">心の状態 (1:悪い 〜 10:良い)</p>
+    <input type="range" id="mind_state" min="1" max="10" value="5" oninput="document.getElementById('mind_val').innerText=this.value">
+    <div style="text-align:right; font-weight:bold;"><span id="mind_val">5</span></div>
 
-            <label>🌡️ 今の状態（各10段階）</label>
-            <p style="margin:0; font-size:1rem;">心の状態 (1:悪い 〜 10:良い)</p>
-            <input type="range" name="mind_state" min="1" max="10" value="5">
-            <p style="margin:15px 0 0; font-size:1rem;">体の状態 (1:悪い 〜 10:良い)</p>
-            <input type="range" name="body_state" min="1" max="10" value="5">
+    <p style="margin:15px 0 0; font-size:0.9rem;">体の状態 (1:悪い 〜 10:良い)</p>
+    <input type="range" id="body_state" min="1" max="10" value="5" oninput="document.getElementById('body_val').innerText=this.value">
+    <div style="text-align:right; font-weight:bold;"><span id="body_val">5</span></div>
 
-            <button type="submit" class="btn-submit">記録を送信してアドバイスをもらおう！</button>
-        </form>
-    </div>
+    <!-- 送信ボタン -->
+    <button id="submitBtn" class="btn">記録してアドバイスを見る</button>
+    <div id="loading">画像を圧縮して送信中...<br>（これには数秒かかります）</div>
+</div>
 
-    <script>
-        const compressImage = async (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                // 最大サイズを800pxに制限（AI解析にはこれで十分です）
-                const maxWidth = 800;
-                const scaleSize = maxWidth / img.width;
-                canvas.width = maxWidth;
-                canvas.height = img.height * scaleSize;
-                
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // JPEG形式で圧縮率0.7（画質を少し落として容量削減）
-                // これで数MBの写真が100KB〜300KBになります
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
+<script>
+    // ▼ 質問リスト（ソース[1]のマスタに基づく）
+    const questions = [
+        { key: "Q1", text: "タネ・ナッツ類（5g程度）", type: "plus" },
+        { key: "Q2", text: "野菜（片手のひら分）", type: "plus" },
+        { key: "Q3", text: "旬の野菜を食べた", type: "plus" },
+        { key: "Q4", text: "海藻類（片手のひら半分）", type: "plus" },
+        { key: "Q5", text: "キノコ類（片手のひら半分）", type: "plus" },
+        { key: "Q6", text: "たんぱく質（肉・魚・卵など）", type: "plus" },
+        { key: "Q7", text: "魚を食べた", type: "plus" },
+        { key: "Q8", text: "味噌汁を飲んだ", type: "plus" },
+        { key: "Q9", text: "空腹を感じて食べた", type: "plus" },
+        { key: "Q10", text: "よく噛んで食べた（30回）", type: "plus" },
+        { key: "Q11", text: "小麦製品（パン・麺類など）", type: "minus" },
+        { key: "Q12", text: "精製糖（お菓子・ジュース）", type: "minus" },
+        { key: "Q13", text: "揚げ物を食べた", type: "minus" },
+        { key: "Q14", text: "お酒・カフェイン（3杯以上）", type: "minus" }
+    ];
+
+    // ▼ 質問を画面に生成する関数
+    window.onload = () => {
+        const plusContainer = document.getElementById("plusQs");
+        const minusContainer = document.getElementById("minusQs");
+
+        questions.forEach(q => {
+            const html = `
+                <div class="check-item">
+                    <label for="${q.key}">${q.text}</label>
+                    <input type="checkbox" id="${q.key}" value="1">
+                </div>
+            `;
+            if (q.type === "plus") plusContainer.innerHTML += html;
+            else minusContainer.innerHTML += html;
+        });
+    };
+
+    // ▼ 画像圧縮ロジック（そのまま維持）
+    const compressImage = async (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 800;
+                    const scaleSize = maxWidth / img.width;
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = (error) => reject(error);
             };
-            img.onerror = (error) => reject(error);
-        };
-    });
-};
-        
-        const userId = new URLSearchParams(window.location.search).get('user_id') || "U12345";
-        const plusList = [
-            {id:1, t:"タネ・ナッツ（5g程度）", s:"ごまやアーモンドなどを食べた"},
-            {id:2, t:"野菜（片手のひら分以上）", s:"生野菜や温野菜を毎食意識して食べた"},
-            {id:3, t:"旬の野菜を食べた", s:"季節のエネルギーを取り入れた"},
-            {id:4, t:"海藻類（わかめ・昆布等）", s:"ミネラル豊富な海藻を片手分食べた"},
-            {id:5, t:"キノコ類を食べた", s:"食物繊維を意識してきのこを食べた"},
-            {id:6, t:"たんぱく質（手のひら大）", s:"肉・魚・卵・豆類を厚み分食べた"},
-            {id:7, t:"特に「魚」を食べた", s:"肉類だけでなく魚を摂取した"},
-            {id:8, t:"味噌汁を飲んだ", s:"1日1回以上の発酵食品補給"},
-            {id:9, t:"空腹感の意識", s:"お腹が空いてから食事を始めた"},
-            {id:10, t:"よく噛んで食べた", s:"丁寧に咀嚼して消化を助けた"}
-        ];
-        const minusList = [
-            {id:11, t:"小麦製品(減点)", s:"パン、麺類、パスタなどの摂取"},
-            {id:12, t:"精製糖(減点)", s:"甘いお菓子、ジュースなどの摂取"},
-            {id:13, t:"揚げ物(減点)", s:"衣のついた揚げ物、油の多い食事"},
-            {id:14, t:"お酒・カフェイン(減点)", s:"3杯以上のアルコールやコーヒー等"}
-        ];
+        });
+    };
 
-        const render = (list, target, color) => {
-            list.forEach(q => {
-                document.getElementById(target).innerHTML += `<div class="q-card" style="background:${color}"><div class="q-text">Q${q.id}. ${q.t} <span class="q-sub">${q.s}</span></div><input type="checkbox" name="Q${q.id}" class="q-check"></div>`;
-            });
-        };
-        render(plusList, 'plusQs', '#e8f5e9'); render(minusList, 'minusQs', '#fff3e0');
+    // ▼ 送信ボタン処理（問診データを含めて送信）
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('user_id');
+        if (!userId) { alert("ユーザーIDがありません"); return; }
 
-        document.getElementById('dailyForm').onsubmit = async (e) => {
-            e.preventDefault();
-            document.getElementById('loading').style.display = 'flex';
-            const formData = new FormData(e.target);
-            formData.append('user_id', userId);
+        const purpose = document.querySelector('input[name="meal_purpose"]:checked');
+        const mealPhotoInput = document.getElementById('meal-photo');
 
-            try {
-                const res = await fetch('/.netlify/functions/daily-submit', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error("HTTP Error");
-                const data = await res.json();
-                
-                // 【結果が表示されない問題の修正】
-                // 成功レスポンスが届いたら、IDがなくても最新の結果ページへリダイレクト
-                const logId = data.log_id || "latest";
-                window.location.href = `/result?log_id=${logId}&user_id=${userId}`;
-            } catch (err) {
-                document.getElementById('loading').style.display = 'none';
-                alert("送信エラーです。写真のファイルサイズを小さく（低画質に）して、もう一度お試しください。");
+        if (mealPhotoInput.files.length === 0) {
+            alert("食事の写真を選択してください");
+            return;
+        }
+
+        // 送信準備
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingText = document.getElementById('loading');
+        submitBtn.disabled = true;
+        loadingText.style.display = 'block';
+
+        try {
+            // 画像圧縮
+            const compressedMeal = await compressImage(mealPhotoInput.files);
+            let compressedTongue = null;
+            const tonguePhotoInput = document.getElementById('tongue-photo');
+            if (tonguePhotoInput.files.length > 0) {
+                compressedTongue = await compressImage(tonguePhotoInput.files);
             }
-        };
-    </script>
+
+            // ★ここが重要：問診データの収集
+            const answers = {};
+            // Q1〜Q14のチェック状態を取得
+            questions.forEach(q => {
+                const checkbox = document.getElementById(q.key);
+                answers[q.key] = checkbox.checked ? 1 : 0;
+            });
+            // 体調データの取得
+            answers["stool_state"] = document.getElementById("stool_state").value;
+            answers["urine_state"] = document.getElementById("urine_state").value;
+            answers["sleep_quality"] = document.getElementById("sleep_quality").value;
+            answers["mind_state"] = document.getElementById("mind_state").value;
+            answers["body_state"] = document.getElementById("body_state").value;
+
+            // 送信データ作成
+            const payload = {
+                user_id: userId,
+                date: new Date().toISOString().split('T'),
+                meal_purpose: purpose.value,
+                meal_photo: compressedMeal,
+                tongue_photo: compressedTongue,
+                daily_questionnaire: answers // まとめて送信
+            };
+
+            // サーバーへ送信
+            const response = await fetch('/.netlify/functions/daily-submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("記録しました！\n本日もお疲れ様でした🍵");
+                window.location.href = `/home/?user_id=${userId}`;
+            } else {
+                throw new Error(result.error || "送信エラー");
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("エラー: " + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            loadingText.style.display = 'none';
+        }
+    });
+</script>
+
 </body>
 </html>
