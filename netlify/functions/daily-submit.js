@@ -77,10 +77,14 @@ exports.handler = async (event) => {
       max_tokens: 1000
     });
 
-    // ★★★【ここが最重要修正点】★★★
-    // AIからの返事は「リスト（choices）」で届くため、（1番目）を指定しないとエラーになります。
-    // 以前のエラー原因： completion.choices.message.content
+    // ★★★【ここがエラー修正の最重要ポイント】★★★
+    // 以前のコード（エラー原因）： completion.choices.message.content
     // 今回の修正コード： completion.choices.message.content
+    // さらに、万が一データが空だった場合のガードを追加
+    if (!completion.choices || !completion.choices || !completion.choices.message) {
+        throw new Error("AIからの応答が空でした。もう一度お試しください。");
+    }
+
     const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
@@ -93,7 +97,7 @@ exports.handler = async (event) => {
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
     
-    // シート容量節約のため写真は1枚目のみ保存（運用ルール）
+    // シート容量節約のため写真は1枚目のみ保存
     const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
 
     await logSheet.addRow({
@@ -109,7 +113,6 @@ exports.handler = async (event) => {
     });
 
     // --- 3. 結果をフロントエンドへ返す ---
-    // 食べ物ではないと判定された場合
     if (aiResult.食べ物ですか === false) {
       return {
         statusCode: 200,
@@ -119,7 +122,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // 正常な解析結果を返す
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -130,7 +132,6 @@ exports.handler = async (event) => {
 
   } catch (error) {
     console.error("Error:", error);
-    // エラー内容をJSONで返す（画面クラッシュ防止）
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "システムエラーが発生しました: " + error.message })
