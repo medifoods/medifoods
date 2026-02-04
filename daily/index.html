@@ -140,11 +140,11 @@
         });
     };
 
-    // ▼ 画像圧縮ロジック
+    // ▼ 画像圧縮ロジック（そのまま）
     const compressImage = async (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file); // ファイル単体を読み込む
+            reader.readAsDataURL(file);
             reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
@@ -163,10 +163,10 @@
         });
     };
 
-    // ▼ 送信ボタン処理
+    // ▼ 送信ボタン処理（1枚ずつ順番に処理する修正版）
     document.getElementById('submitBtn').addEventListener('click', async () => {
         const params = new URLSearchParams(window.location.search);
-        const userId = params.get('user_id') || "U12345"; // 仮ID
+        const userId = params.get('user_id') || "U12345";
 
         const purpose = document.querySelector('input[name="meal_purpose"]:checked');
         const mealPhotoInput = document.getElementById('meal-photo');
@@ -187,17 +187,28 @@
         loadingText.style.display = 'block';
 
         try {
-            // ★【重要】複数枚の食事写真をすべて圧縮してリストにする
-            loadingText.innerHTML = "写真を圧縮しています...<br>（枚数により時間がかかります）";
-            
-            // Array.fromでファイルリストを配列化し、mapで圧縮処理を並列実行
-            const compressedMealPromises = Array.from(mealPhotoInput.files).map(file => compressImage(file));
-            const compressedMealList = await Promise.all(compressedMealPromises);
+            // ★【修正点】フリーズ回避のため、1枚ずつ順番に圧縮するループに変更
+            const compressedMealList = [];
+            const files = Array.from(mealPhotoInput.files);
+
+            for (let i = 0; i < files.length; i++) {
+                // 進捗を表示（これでフリーズしていないことが分かります）
+                loadingText.innerHTML = `写真を小さくしています...<br>（${i + 1} / ${files.length} 枚目）`;
+                
+                // 画面の更新を待つために一瞬だけ休憩（これが重要）
+                await new Promise(r => setTimeout(r, 50));
+
+                // 圧縮実行
+                const compressed = await compressImage(files[i]);
+                compressedMealList.push(compressed);
+            }
             
             // 舌写真（1枚のみ）
             let compressedTongue = null;
             const tonguePhotoInput = document.getElementById('tongue-photo');
             if (tonguePhotoInput.files.length > 0) {
+                loadingText.innerText = "舌の写真を処理しています...";
+                await new Promise(r => setTimeout(r, 50));
                 compressedTongue = await compressImage(tonguePhotoInput.files);
             }
 
@@ -216,15 +227,15 @@
             // 送信データ作成
             const payload = {
                 user_id: userId,
-                date: new Date().toISOString().split('T'), // YYYY-MM-DD
+                date: new Date().toISOString().split('T'),
                 meal_purpose: purpose.value,
-                meal_photos: compressedMealList, // 配列として送信
+                meal_photos: compressedMealList,
                 tongue_photo: compressedTongue,
                 daily_questionnaire: answers
             };
 
             // サーバーへ送信
-            loadingText.innerHTML = "AIが解析中です...<br>（30秒〜1分ほどお待ちください）";
+            loadingText.innerHTML = "AIが食事を解析中です...<br>（30秒〜1分ほどお待ちください 🍵）";
             
             const response = await fetch('/.netlify/functions/daily-submit', {
                 method: 'POST',
