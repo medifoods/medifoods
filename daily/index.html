@@ -14,7 +14,7 @@
         .radio-group { display: flex; gap: 15px; margin-bottom: 10px; }
         input[type="file"], select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; }
         
-        /* 問診エリアのデザイン */
+        /* 問診エリア */
         .section-tag { background: #eee; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 20px; font-size: 14px; font-weight: bold; }
         .plus-tag { background: #e8f5e9; color: #2e8b57; }
         .minus-tag { background: #ffebee; color: #c62828; }
@@ -27,7 +27,7 @@
         
         .btn { display: block; width: 100%; padding: 15px; background-color: #2e8b57; color: white; text-align: center; border-radius: 25px; font-weight: bold; border: none; cursor: pointer; font-size: 16px; margin-top: 30px; }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
-        #loading { display: none; text-align: center; color: #666; margin-top: 10px; font-size: 14px; }
+        #loading { display: none; text-align: center; color: #666; margin-top: 10px; font-size: 14px; line-height: 1.6; }
         .note { font-size: 12px; color: #888; margin-top: 5px; }
     </style>
 </head>
@@ -36,7 +36,7 @@
 <div class="container">
     <h2>今日の食薬記録</h2>
 
-    <!-- 1. 基本情報 -->
+    <!-- 1. 食事の基本 -->
     <h3>🍽️ 食事の基本</h3>
     <label>今日の食事の目的は？</label>
     <div class="radio-group">
@@ -45,20 +45,21 @@
         <label><input type="radio" name="meal_purpose" value="social"> 交流</label>
     </div>
 
-    <label>食事の写真（必須）</label>
-    <input type="file" id="meal-photo" accept="image/*">
-    <div class="note">※自動で圧縮して送信します</div>
+    <!-- 複数枚対応：multiple属性を追加 -->
+    <label>食事の写真（必須・3枚まで）</label>
+    <input type="file" id="meal-photo" accept="image/*" multiple>
+    <div class="note">※定食全体と、寄りの写真など複数枚送れます。<br>※自動で圧縮して送信します。</div>
 
-    <label>舌の写真（任意）</label>
+    <label>舌の写真（任意・1枚）</label>
     <input type="file" id="tongue-photo" accept="image/*">
 
-    <!-- 2. 食薬習慣チェック（加点・減点） -->
+    <!-- 2. 食薬習慣チェック -->
     <h3>📝 食薬習慣チェック</h3>
     <div class="section-tag plus-tag">✨ 体を整える習慣（加点）</div>
-    <div id="plusQs"></div> <!-- ここにJSで質問が入ります -->
+    <div id="plusQs"></div>
 
     <div class="section-tag minus-tag">⚠️ 負担をかけた習慣（減点）</div>
-    <div id="minusQs"></div> <!-- ここにJSで質問が入ります -->
+    <div id="minusQs"></div>
 
     <!-- 3. 体調チェック -->
     <h3>🚽 体調チェック</h3>
@@ -104,7 +105,7 @@
 </div>
 
 <script>
-    // ▼ 質問リスト（ソース[1]のマスタに基づく）
+    // ▼ 質問リスト
     const questions = [
         { key: "Q1", text: "タネ・ナッツ類（5g程度）", type: "plus" },
         { key: "Q2", text: "野菜（片手のひら分）", type: "plus" },
@@ -122,7 +123,7 @@
         { key: "Q14", text: "お酒・カフェイン（3杯以上）", type: "minus" }
     ];
 
-    // ▼ 質問を画面に生成する関数
+    // ▼ 質問生成
     window.onload = () => {
         const plusContainer = document.getElementById("plusQs");
         const minusContainer = document.getElementById("minusQs");
@@ -139,38 +140,41 @@
         });
     };
 
-    // ▼ 画像圧縮ロジック（そのまま維持）
+    // ▼ 画像圧縮ロジック
     const compressImage = async (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file); // ファイル単体を読み込む
             reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const maxWidth = 800;
+                    const maxWidth = 800; // 幅800pxに縮小
                     const scaleSize = maxWidth / img.width;
                     canvas.width = maxWidth;
                     canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    resolve(canvas.toDataURL('image/jpeg', 0.7)); // 圧縮率0.7
                 };
                 img.onerror = (error) => reject(error);
             };
         });
     };
 
-    // ▼ 送信ボタン処理（問診データを含めて送信）
+    // ▼ 送信ボタン処理
     document.getElementById('submitBtn').addEventListener('click', async () => {
         const params = new URLSearchParams(window.location.search);
-        const userId = params.get('user_id');
-        if (!userId) { alert("ユーザーIDがありません"); return; }
+        const userId = params.get('user_id') || "U12345"; // 仮ID
 
         const purpose = document.querySelector('input[name="meal_purpose"]:checked');
         const mealPhotoInput = document.getElementById('meal-photo');
 
+        if (!purpose) {
+            alert("「食事の目的」を選んでください");
+            return;
+        }
         if (mealPhotoInput.files.length === 0) {
             alert("食事の写真を選択してください");
             return;
@@ -183,22 +187,26 @@
         loadingText.style.display = 'block';
 
         try {
-            // 画像圧縮
-            const compressedMeal = await compressImage(mealPhotoInput.files);
+            // ★【重要】複数枚の食事写真をすべて圧縮してリストにする
+            loadingText.innerHTML = "写真を圧縮しています...<br>（枚数により時間がかかります）";
+            
+            // Array.fromでファイルリストを配列化し、mapで圧縮処理を並列実行
+            const compressedMealPromises = Array.from(mealPhotoInput.files).map(file => compressImage(file));
+            const compressedMealList = await Promise.all(compressedMealPromises);
+            
+            // 舌写真（1枚のみ）
             let compressedTongue = null;
             const tonguePhotoInput = document.getElementById('tongue-photo');
             if (tonguePhotoInput.files.length > 0) {
                 compressedTongue = await compressImage(tonguePhotoInput.files);
             }
 
-            // ★ここが重要：問診データの収集
+            // 問診データ収集
             const answers = {};
-            // Q1〜Q14のチェック状態を取得
             questions.forEach(q => {
                 const checkbox = document.getElementById(q.key);
-                answers[q.key] = checkbox.checked ? 1 : 0;
+                if(checkbox) answers[q.key] = checkbox.checked ? 1 : 0;
             });
-            // 体調データの取得
             answers["stool_state"] = document.getElementById("stool_state").value;
             answers["urine_state"] = document.getElementById("urine_state").value;
             answers["sleep_quality"] = document.getElementById("sleep_quality").value;
@@ -208,14 +216,16 @@
             // 送信データ作成
             const payload = {
                 user_id: userId,
-                date: new Date().toISOString().split('T'),
+                date: new Date().toISOString().split('T'), // YYYY-MM-DD
                 meal_purpose: purpose.value,
-                meal_photo: compressedMeal,
+                meal_photos: compressedMealList, // 配列として送信
                 tongue_photo: compressedTongue,
-                daily_questionnaire: answers // まとめて送信
+                daily_questionnaire: answers
             };
 
             // サーバーへ送信
+            loadingText.innerHTML = "AIが解析中です...<br>（30秒〜1分ほどお待ちください）";
+            
             const response = await fetch('/.netlify/functions/daily-submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -225,7 +235,7 @@
             const result = await response.json();
 
             if (response.ok) {
-                alert("記録しました！\n本日もお疲れ様でした🍵");
+                alert("記録しました！\n" + (result.message_ui || "本日もお疲れ様でした🍵"));
                 window.location.href = `/home/?user_id=${userId}`;
             } else {
                 throw new Error(result.error || "送信エラー");
@@ -233,7 +243,7 @@
 
         } catch (error) {
             console.error(error);
-            alert("エラー: " + error.message);
+            alert("エラーが発生しました: " + error.message);
         } finally {
             submitBtn.disabled = false;
             loadingText.style.display = 'none';
