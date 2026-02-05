@@ -22,25 +22,19 @@ exports.handler = async (event) => {
     // --- 1. OpenAIで解析 ---
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // AIへのメッセージ（本番用プロンプト）
+    // AIへのメッセージ（gpt-4o-mini用に最適化）
     const userContent = [
       {
         type: "text",
         text: `
-          あなたは臨床分子栄養療法と食薬のプロです。食事画像から栄養とアドバイスをJSONで返してください。
-          【ルール】
-          - 食品が写っていない場合は "食べ物ですか": false を返す。
-          - 糖質80g超は「少し多め」と判断し次回控える提案をする。
-          - たんぱく質15g未満は肉魚卵の追加を提案。
-          - 小麦、牛乳、砂糖、加工肉、揚げ物は推奨しない。
-          - 文中に「」は使わず、否定語を避け、親切なトーンで。
-          - 最後に必ず「普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう」で締める。
+          あなたは栄養療法のプロです。食事画像を見て、以下のJSON形式【のみ】で返答してください。
+          余計な挨拶やマークダウン（\`\`\`jsonなど）は不要です。
           
-          出力JSON形式:
+          出力形式:
           {
             "食べ物ですか": true,
-            "メニュー": [{"名前": "", "材料": [], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
-            "健康アドバイス": "..."
+            "メニュー": [{"名前": "料理名", "材料": ["材料"], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
+            "健康アドバイス": "150文字以内の親切なアドバイス。否定語禁止。締め文：普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう"
           }
         `
       }
@@ -58,20 +52,35 @@ exports.handler = async (event) => {
       userContent.push({ type: "image_url", image_url: { url: url } });
     });
 
-    // ★本番設定：gpt-4oに戻し、JSONモードを有効化
+    // ★重要変更：モデルをminiにして高速化（タイムアウト回避）
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", 
+      model: "gpt-4o-mini", 
       messages: [{ role: "user", content: userContent }],
-      response_format: { type: "json_object" }, // 必ずJSONで返す設定
       max_tokens: 1000
     });
 
-    // ★重要：AIからの返事（生のデータ）を正しく取り出す
+    // AIからの返答チェック
     if (!completion.choices || !completion.choices || !completion.choices.message) {
-        throw new Error("AIからの応答が不正です。");
+        throw new Error("AIからの応答が空でした。通信環境を確認してください。");
     }
 
-    const aiResult = JSON.parse(completion.choices.message.content);
+    let content = completion.choices.message.content;
+    
+    // ★防御策：AIが ```json ... ``` で返してきても強制的に削除して読み込む
+    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    let aiResult;
+    try {
+        aiResult = JSON.parse(content);
+    } catch (e) {
+        // 万が一JSONが壊れていても、無理やり表示する（エラーで止めない）
+        console.error("JSON Parse Fail:", content);
+        aiResult = {
+            "食べ物ですか": true,
+            "メニュー": [{"名前": "解析エラー", "材料": [], "糖質":0, "食物繊維":0, "カロリー":0, "脂質":0, "タンパク質":0}],
+            "健康アドバイス": "申し訳ありません。AIの解析結果を読み取れませんでした。\n生データ: " + content
+        };
+    }
 
     // --- 2. スプレッドシートへ保存 ---
     const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -82,8 +91,7 @@ exports.handler = async (event) => {
     await doc.loadInfo();
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
-    // シート容量節約のため1枚目のみ保存
-    const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
+    const photoToSave = mealPhotos.length > 0 ? mealPhotos : ""; // 容量削減のため1枚目のみ
 
     await logSheet.addRow({
       log_id: Date.now().toString(),
