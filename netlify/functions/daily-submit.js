@@ -12,53 +12,66 @@ exports.handler = async (event) => {
     let mealPhotos = data.meal_photos || [];
     if (!Array.isArray(mealPhotos)) mealPhotos = [mealPhotos];
     
-    if (mealPhotos.length === 0) {
-        return { statusCode: 400, body: JSON.stringify({ error: "写真が届いていません" }) };
-    }
+    // 写真がない場合も記録は受け付けるが、AI解析はスキップする設計
+    const hasMealPhotos = mealPhotos.length > 0;
 
     // OpenAI APIの設定
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // AIへの指示（プロンプト）
-    const systemPrompt = `
-      あなたは臨床分子栄養療法と食薬のプロです。食事画像から栄養とアドバイスをJSONで返してください。
-      【是正ルール】
-      - 糖質80g超は「少し多め」とし、次回控える提案をする。
-      - たんぱく質15g未満は肉魚卵の追加を提案。
-      - 小麦、牛乳、砂糖、加工肉（ハム等）、揚げ物は推奨しない。
-      - 文中に「」は使わず、否定語を避け、親切なトーンで。
-      - 最後に必ず「普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう」で締める。
-      
-      出力JSON形式:
-      {
-        "食べ物ですか": true,
-        "メニュー": [{"名前": "", "材料": [], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
-        "健康アドバイス": "..."
-      }
-      食品が写っていない場合は "食べ物ですか": false を返してください。
-    `;
+    let aiResult = {};
 
-    // AIへのメッセージ構築
-    const userContent = [
-      { type: "text", text: "この食事の栄養素と食薬アドバイスをお願いします。" }
-    ];
-    
-    mealPhotos.forEach(url => {
-        userContent.push({ type: "image_url", image_url: { url: url } });
-    });
+    if (hasMealPhotos) {
+        // ★あなたが定義した食薬ルール（ソース[1]）をここに注入
+        const systemPrompt = `
+          あなたは臨床分子栄養療法と食薬のプロアシスタントです。ユーザーの食事に対し、親切で丁寧な言葉を使い、否定的な表現を避け、安心感を与えるアドバイスを行います。
+          【是正ルール】
+          1. 糖質が80g超なら「少し多め」と判断し、次回の調整を具体的に提案。40gを下回らない限り褒めない。ジュースは血糖値の乱高下を招くため控えるよう伝える。高GI食品には酢の物を提案する。
+          2. たんぱく質15g未満なら、胃腸に問題がない限り、肉・魚・卵での増量を促す。加工肉（ハム、ベーコン、ソーセージ、バーガー、サラミ等）は健康リスクがあるため常食を控え、メリットは伝えない。
+          3. 食物繊維6g以下なら野菜、海藻、ナッツ等の増量を促す。旬の色や香りのある野菜を勧める。
+          4. 巨大魚（マグロ等）は水銀リスクのため推奨しない。
+          5. 揚げ物やインスタントは週1回までとし、加熱にはココナッツオイル、生食にはオメガ3を勧める。
+          6. 小麦、牛乳、バター、生クリーム、砂糖、顆粒出汁、白だし、麺つゆ、はちみつ、マヨネーズ、ケチャップは一切使用・推奨しない。
+          
+          【表現ルール】
+          文中に「」（カギカッコ）や箇条書きを使わず、つなげた文章で書くこと。改行は禁止。
+          
+          【必須の締め文】
+          最後に必ず次の文章を付与してください：普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう。
 
-    // GPT-4o 呼び出し
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o", 
-      messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent }
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 1000
-    });
+          出力形式（JSONのみ）:
+          {
+            "食べ物ですか": true,
+            "メニュー": [{"名前": "", "材料": [], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
+            "健康アドバイス": "..."
+          }
+          食品が写っていない場合は "食べ物ですか": false を返してください。
+        `;
 
-    const aiResult = JSON.parse(completion.choices.message.content);
+        // GPT-4o 呼び出し
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", 
+          messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: [
+                  { type: "text", text: "この食事の栄養素と食薬アドバイスをお願いします。" },
+                  ...mealPhotos.map(url => ({ type: "image_url", image_url: { url: url } }))
+              ]}
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 1000
+        });
+
+        // AIの返答をパース
+        try {
+            aiResult = JSON.parse(completion.choices.message.content);
+        } catch (e) {
+            console.error("JSON Parse Error", e);
+            aiResult = { "食べ物ですか": true, "健康アドバイス": "解析中にエラーが発生しましたが、記録は完了しました。" };
+        }
+    } else {
+        // 写真がない場合
+        aiResult = { "食べ物ですか": false, "健康アドバイス": "" };
+    }
 
     // スプレッドシートへ保存
     const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -68,10 +81,10 @@ exports.handler = async (event) => {
     });
     await doc.loadInfo();
 
-    const logSheet = doc.sheetsByTitle['DailyLog'];
+    const logSheet = doc.sheetsByTitle['DailyLog']; // [2]の定義に従う
     
     // 写真は1枚目のみ保存（容量節約）
-    const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
+    const photoToSave = hasMealPhotos ? mealPhotos : "";
 
     await logSheet.addRow({
       log_id: Date.now().toString(),
@@ -86,7 +99,7 @@ exports.handler = async (event) => {
     });
 
     // フロントエンドへの返却
-    if (aiResult.食べ物ですか === false) {
+    if (aiResult.食べ物ですか === false && hasMealPhotos) {
       return {
         statusCode: 200,
         body: JSON.stringify({
