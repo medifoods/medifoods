@@ -22,19 +22,25 @@ exports.handler = async (event) => {
     // --- 1. OpenAIで解析 ---
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // AIへのメッセージ（少し制限を緩めて優しくしました）
+    // AIへのメッセージ（本番用プロンプト）
     const userContent = [
       {
         type: "text",
         text: `
-          あなたは栄養療法のプロです。食事画像を見てJSON形式で返答してください。
-          JSONの前後に余計な文章はつけないでください。
+          あなたは臨床分子栄養療法と食薬のプロです。食事画像から栄養とアドバイスをJSONで返してください。
+          【ルール】
+          - 食品が写っていない場合は "食べ物ですか": false を返す。
+          - 糖質80g超は「少し多め」と判断し次回控える提案をする。
+          - たんぱく質15g未満は肉魚卵の追加を提案。
+          - 小麦、牛乳、砂糖、加工肉、揚げ物は推奨しない。
+          - 文中に「」は使わず、否定語を避け、親切なトーンで。
+          - 最後に必ず「普段と変わらない食事を少しずつ健康を意識したものへと近づけ、食薬を習慣化することで元気な心と体をつくりましょう」で締める。
           
-          出力形式:
+          出力JSON形式:
           {
             "食べ物ですか": true,
-            "メニュー": [{"名前": "料理名", "材料": ["材料"], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
-            "健康アドバイス": "150文字以内の親切なアドバイス"
+            "メニュー": [{"名前": "", "材料": [], "糖質": 0, "食物繊維": 0, "カロリー": 0, "脂質": 0, "タンパク質": 0}],
+            "健康アドバイス": "..."
           }
         `
       }
@@ -52,31 +58,20 @@ exports.handler = async (event) => {
       userContent.push({ type: "image_url", image_url: { url: url } });
     });
 
-    // ★変更点：モデルをminiにし、JSON強制モードを外してエラー回避
+    // ★本番設定：gpt-4oに戻し、JSONモードを有効化
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", 
+      model: "gpt-4o", 
       messages: [{ role: "user", content: userContent }],
+      response_format: { type: "json_object" }, // 必ずJSONで返す設定
       max_tokens: 1000
     });
 
-    // ★診断用：AIの返事が空なら、中身をそのままエラーとして表示する
+    // ★重要：AIからの返事（生のデータ）を正しく取り出す
     if (!completion.choices || !completion.choices || !completion.choices.message) {
-        console.error("AI Response Error:", JSON.stringify(completion));
-        throw new Error("AIからの返答が空です。詳細: " + JSON.stringify(completion));
+        throw new Error("AIからの応答が不正です。");
     }
 
-    let content = completion.choices.message.content;
-    
-    // JSON以外の文字（```json 等）が含まれていたら削除して整える
-    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    let aiResult;
-    try {
-        aiResult = JSON.parse(content);
-    } catch (e) {
-        console.error("JSON Parse Error. Content:", content);
-        throw new Error("AIの返答を読み取れませんでした。内容: " + content.substring(0, 50) + "...");
-    }
+    const aiResult = JSON.parse(completion.choices.message.content);
 
     // --- 2. スプレッドシートへ保存 ---
     const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -87,6 +82,7 @@ exports.handler = async (event) => {
     await doc.loadInfo();
 
     const logSheet = doc.sheetsByTitle['DailyLog'];
+    // シート容量節約のため1枚目のみ保存
     const photoToSave = mealPhotos.length > 0 ? mealPhotos : "";
 
     await logSheet.addRow({
@@ -123,7 +119,7 @@ exports.handler = async (event) => {
     console.error("Error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "診断エラー: " + error.message })
+      body: JSON.stringify({ error: "システムエラー: " + error.message })
     };
   }
 };
